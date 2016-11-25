@@ -1,0 +1,17 @@
+tmp
+Debug
+Release
+ipch
+*.suo
+*.opensdf
+*.sdf
+*.user
+*.aps
+*.vc.*
+/.vs
+*.psess
+*.vspx
+*.vsp
+*.VC.db
+*.opendb
+*.pdb
