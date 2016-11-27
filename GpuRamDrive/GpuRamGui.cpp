@@ -181,13 +181,18 @@ void GpuRamGui::OnMountClicked()
 
 		wchar_t szTemp[64] = { 0 };
 		Edit_GetText(m_CtlMemSize, szTemp, sizeof(szTemp));
-		safeio_size_t memSize = (safeio_size_t)_wtoi64(szTemp);
+		safeio_size_t memSize = (safeio_size_t)_wtoi64(szTemp) * 1024 * 1024;
+
+		if (memSize >= vGpu[n].memsize) {
+			MessageBox(m_hWnd, L"The memory size you specified is too large", L"Invalid memory size", MB_OK);
+			return;
+		}
 
 		ComboBox_GetText(m_CtlDriveLetter, szTemp, sizeof(szTemp));
 
 		try
 		{
-			m_RamDrive.CreateRamDevice(vGpu[n].platform_id, vGpu[n].device_id, L"GpuRamDev", memSize * 1024 * 1024, szTemp);
+			m_RamDrive.CreateRamDevice(vGpu[n].platform_id, vGpu[n].device_id, L"GpuRamDev", memSize, szTemp);
 		}
 		catch (const std::exception& ex)
 		{
