@@ -26,6 +26,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 */
 
 #include "stdafx.h"
+#include <imdisk/imdisk.h>
 #include <imdisk/imdproxy.h>
 #include "GpuRamDrive.h"
 
@@ -37,6 +38,7 @@ GPURamDrive::GPURamDrive()
 	, m_Context(nullptr)
 	, m_Queue(nullptr)
 	, m_GpuMem(nullptr)
+	, m_ImdDrive(INVALID_HANDLE_VALUE)
 	, m_ShmHandle(NULL)
 	, m_ShmMutexSrv(NULL)
 	, m_ShmReqEvent(NULL)
@@ -78,7 +80,7 @@ void GPURamDrive::RefreshGPUInfo()
 			TGPUDevice GpuDevices;
 			char szDevName[64] = { 0 };
 
-			if ((clRet = clGetDeviceInfo(devices[j], CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong), &GpuDevices.memsize, nullptr)) != CL_SUCCESS) {
+			if ((clRet = clGetDeviceInfo(devices[j], CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(cl_ulong), &GpuDevices.memsize, nullptr)) != CL_SUCCESS) {
 				continue;
 			}
 
@@ -99,23 +101,73 @@ const std::vector<TGPUDevice>& GPURamDrive::GetGpuDevices()
 	return m_Devices;
 }
 
-void GPURamDrive::CreateRamDevice(cl_platform_id PlatformId, cl_device_id DeviceId, const std::wstring& ServiceName, safeio_size_t MemSize)
+void GPURamDrive::CreateRamDevice(cl_platform_id PlatformId, cl_device_id DeviceId, const std::wstring& ServiceName, safeio_size_t MemSize, const wchar_t* MountPoint)
 {
 	m_PlatformId = PlatformId;
 	m_DeviceId = DeviceId;
 	m_MemSize = MemSize;
+	m_ServiceName = ServiceName;
 
-	GpuAllocateRam();
-	ImdiskSetupComm(ServiceName);
+	std::exception state_ex;
+	std::atomic<int> state = 0;
+
+	m_GpuThread = std::thread([&]() {
+		try
+		{
+			GpuAllocateRam();
+			ImdiskSetupComm(ServiceName);
+			state = 1;
+			ImdiskHandleComm();
+		}
+		catch (const std::exception& ex)
+		{
+			Close();
+			state_ex = ex;
+			state = 2;
+		}
+	});
+
+	while (state == 0) {
+		Sleep(1);
+	}
+
+	if (state == 2) {
+		if (m_GpuThread.joinable()) m_GpuThread.join();
+		throw state_ex;
+	}
+
+	ImdiskMountDevice(MountPoint);
+	if (m_StateChangeCallback) m_StateChangeCallback();
 }
 
-void GPURamDrive::CreateDosDevice(char DriveLetter)
+void GPURamDrive::ImdiskMountDevice(const wchar_t* MountPoint)
 {
+	DISK_GEOMETRY dskGeom = { 0 };
 
+	ImDiskSetAPIFlags(IMDISK_API_FORCE_DISMOUNT);
+
+	m_MountPoint = MountPoint;
+	if (!ImDiskCreateDevice(NULL, &dskGeom, nullptr, IMDISK_TYPE_PROXY | IMDISK_PROXY_TYPE_SHM | IMDISK_DEVICE_TYPE_HD, m_ServiceName.c_str(), FALSE, (LPWSTR)MountPoint)) {
+		throw std::runtime_error("Unable to create and mount ImDisk drive");
+	}
+}
+
+void GPURamDrive::ImdiskUnmountDevice()
+{
+	if (m_MountPoint.length() == 0) return;
+	
+	ImDiskRemoveDevice(NULL, 0, m_MountPoint.c_str());
+	m_MountPoint.clear();
 }
 
 void GPURamDrive::Close()
 {
+	ImdiskUnmountDevice();
+
+	if (m_GpuThread.get_id() != std::this_thread::get_id()) {
+		if (m_GpuThread.joinable()) m_GpuThread.join();
+	}
+
 	if (m_ShmView) UnmapViewOfFile(m_ShmView);
 	if (m_ShmHandle) CloseHandle(m_ShmHandle);
 	if (m_ShmMutexSrv) CloseHandle(m_ShmMutexSrv);
@@ -136,6 +188,18 @@ void GPURamDrive::Close()
 	m_Queue = nullptr;
 	m_Context = nullptr;
 	m_MemSize = 0;
+
+	if (m_StateChangeCallback) m_StateChangeCallback();
+}
+
+bool GPURamDrive::IsMounted()
+{
+	return m_MountPoint.size() != 0 && m_ShmView != nullptr;
+}
+
+void GPURamDrive::SetStateChangeCallback(const std::function<void()> callback)
+{
+	m_StateChangeCallback = callback;
 }
 
 void GPURamDrive::GpuAllocateRam()
@@ -206,7 +270,7 @@ void GPURamDrive::ImdiskSetupComm(const std::wstring& ServiceName)
 		sTemp.c_str());
 	dwErr = GetLastError();
 	if (m_ShmHandle == NULL) {
-		throw std::runtime_error("Unable to create file mapping:" + std::to_string(dwErr));
+		throw std::runtime_error("Unable to create file mapping: " + std::to_string(dwErr));
 	}
 
 	if (dwErr == ERROR_ALREADY_EXISTS) {
@@ -251,8 +315,6 @@ void GPURamDrive::ImdiskSetupComm(const std::wstring& ServiceName)
 		dwErr = GetLastError();
 		throw std::runtime_error("Unable to create response event object: " + std::to_string(dwErr));
 	}
-
-	ImdiskHandleComm();
 }
 
 void GPURamDrive::ImdiskHandleComm()
@@ -304,33 +366,4 @@ void GPURamDrive::ImdiskHandleComm()
 			return;
 		}
 	}
-}
-
-int main()
-{
-	GPURamDrive ramDrive;
-
-	try
-	{
-		ramDrive.RefreshGPUInfo();
-		auto v = ramDrive.GetGpuDevices();
-
-		cl_platform_id platform = 0;
-		cl_device_id device = 0;
-		for (auto it = v.begin(); it != v.end(); it++)
-		{
-			printf("  [%d] %s\n", 0, it->name.c_str());
-			platform = it->platform_id;
-			device = it->device_id;
-		}
-
-		ramDrive.CreateRamDevice(platform, device, L"GpuRamDrive1", 2 << 20);
-	}
-	catch (const std::exception& ex)
-	{
-		printf("Exception: %s\n", ex.what());
-		ramDrive.Close();
-	}
-
-	return 0;
 }
