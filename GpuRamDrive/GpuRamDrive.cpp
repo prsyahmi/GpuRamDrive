@@ -26,44 +26,145 @@ OTHER DEALINGS IN THE SOFTWARE.
 */
 
 #include "stdafx.h"
+#include <imdisk/imdproxy.h>
+#include "GpuRamDrive.h"
 
 #define TEST_HOST_RAM 0
-
-cl_context clContext;
-cl_mem clBuff;
-cl_command_queue clQueue;
 char* pBuff = nullptr;
 
-safeio_ssize_t __cdecl GpuRead(
-	void *handle,
-	void *buf,
-	safeio_size_t size,
-	off_t_64 offset)
+GPURamDrive::GPURamDrive()
+	: m_MemSize(0)
+	, m_Context(nullptr)
+	, m_Queue(nullptr)
+	, m_GpuMem(nullptr)
+	, m_ShmHandle(NULL)
+	, m_ShmMutexSrv(NULL)
+	, m_ShmReqEvent(NULL)
+	, m_ShmRespEvent(NULL)
+	, m_ShmView(nullptr)
 {
-#if TEST_HOST_RAM
-	memcpy(buf, pBuff + offset, size);
-	return size;
-#else
-	if (clEnqueueReadBuffer(clQueue, clBuff, CL_TRUE, offset, size, buf, 0, nullptr, nullptr) != CL_SUCCESS) {
-		return 0;
-	}
 
-	return size;
-#endif
 }
 
-safeio_ssize_t __cdecl GpuWrite(
-	void *handle,
-	void *buf,
-	safeio_size_t size,
-	off_t_64 offset
-)
+GPURamDrive::~GPURamDrive()
+{
+	Close();
+}
+
+void GPURamDrive::RefreshGPUInfo()
+{
+	cl_int clRet;
+	cl_platform_id platforms[8];
+	cl_uint numPlatforms;
+
+	if ((clRet = clGetPlatformIDs(4, platforms, &numPlatforms)) != CL_SUCCESS) {
+		throw std::runtime_error(std::string("Unable to get platform IDs: ") + std::to_string(clRet));
+	}
+
+	for (cl_uint i = 0; i < numPlatforms; i++) {
+		cl_device_id devices[16];
+		cl_uint numDevices;
+		char szPlatformName[64] = { 0 };
+
+		if ((clRet = clGetPlatformInfo(platforms[i], CL_PLATFORM_NAME, sizeof(szPlatformName), szPlatformName, nullptr)) != CL_SUCCESS) {
+			continue;
+		}
+
+		if ((clRet = clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_ACCELERATOR, 16, devices, &numDevices)) != CL_SUCCESS) {
+			continue;
+		}
+
+		for (cl_uint j = 0; j < numDevices; j++) {
+			TGPUDevice GpuDevices;
+			char szDevName[64] = { 0 };
+
+			if ((clRet = clGetDeviceInfo(devices[j], CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(cl_ulong), &GpuDevices.memsize, nullptr)) != CL_SUCCESS) {
+				continue;
+			}
+
+			if ((clRet = clGetDeviceInfo(devices[j], CL_DEVICE_NAME, sizeof(szDevName), szDevName, nullptr)) != CL_SUCCESS) {
+				continue;
+			}
+
+			GpuDevices.platform_id = platforms[i];
+			GpuDevices.device_id = devices[j];
+			GpuDevices.name = szPlatformName + std::string(" - ") + szDevName;
+			m_Devices.push_back(GpuDevices);
+		}
+	}
+}
+
+const std::vector<TGPUDevice>& GPURamDrive::GetGpuDevices()
+{
+	return m_Devices;
+}
+
+void GPURamDrive::CreateRamDevice(cl_platform_id PlatformId, cl_device_id DeviceId, const std::wstring& ServiceName, safeio_size_t MemSize)
+{
+	m_PlatformId = PlatformId;
+	m_DeviceId = DeviceId;
+	m_MemSize = MemSize;
+
+	GpuAllocateRam();
+	ImdiskSetupComm(ServiceName);
+}
+
+void GPURamDrive::CreateDosDevice(char DriveLetter)
+{
+
+}
+
+void GPURamDrive::Close()
+{
+	if (m_ShmView) UnmapViewOfFile(m_ShmView);
+	if (m_ShmHandle) CloseHandle(m_ShmHandle);
+	if (m_ShmMutexSrv) CloseHandle(m_ShmMutexSrv);
+	if (m_ShmReqEvent) CloseHandle(m_ShmReqEvent);
+	if (m_ShmRespEvent) CloseHandle(m_ShmRespEvent);
+
+	if (m_GpuMem) clReleaseMemObject(m_GpuMem);
+	if (m_Queue) clReleaseCommandQueue(m_Queue);
+	if (m_Context) clReleaseContext(m_Context);
+
+	m_ShmView = nullptr;
+	m_ShmHandle = NULL;
+	m_ShmMutexSrv = NULL;
+	m_ShmReqEvent = NULL;
+	m_ShmRespEvent = NULL;
+
+	m_GpuMem = nullptr;
+	m_Queue = nullptr;
+	m_Context = nullptr;
+	m_MemSize = 0;
+}
+
+void GPURamDrive::GpuAllocateRam()
+{
+	cl_int clRet;
+
+	m_Context = clCreateContext(nullptr, 1, &m_DeviceId, nullptr, nullptr, &clRet);
+	if (m_Context == nullptr) {
+		throw std::runtime_error("Unable to create context: " + std::to_string(clRet));
+	}
+
+	m_Queue = clCreateCommandQueue(m_Context, m_DeviceId, 0, &clRet);
+	if (m_Queue == nullptr) {
+		throw std::runtime_error("Unable to create command queue: " + std::to_string(clRet));
+	}
+
+	m_GpuMem = clCreateBuffer(m_Context, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, m_MemSize, nullptr, &clRet);
+	if (m_GpuMem == nullptr) {
+		throw std::runtime_error("Unable to create memory buffer: " + std::to_string(clRet));
+	}
+}
+
+safeio_ssize_t GPURamDrive::GpuWrite(void *buf, safeio_size_t size, off_t_64 offset)
 {
 #if TEST_HOST_RAM
 	memcpy(pBuff + offset, buf, size);
 	return size;
 #else
-	if (clEnqueueWriteBuffer(clQueue, clBuff, CL_TRUE, offset, size, buf, 0, nullptr, nullptr) != CL_SUCCESS) {
+	if (clEnqueueWriteBuffer(m_Queue, m_GpuMem, CL_TRUE, offset, size, buf, 0, nullptr, nullptr) != CL_SUCCESS) {
 		return 0;
 	}
 
@@ -71,87 +172,165 @@ safeio_ssize_t __cdecl GpuWrite(
 #endif
 }
 
-int __cdecl GpuClose(void *handle)
+safeio_ssize_t GPURamDrive::GpuRead(void *buf, safeio_size_t size, off_t_64 offset)
 {
-	return 0;
+#if TEST_HOST_RAM
+	memcpy(buf, pBuff + offset, size);
+	return size;
+#else
+	if (clEnqueueReadBuffer(m_Queue, m_GpuMem, CL_TRUE, offset, size, buf, 0, nullptr, nullptr) != CL_SUCCESS) {
+		return 0;
+	}
+
+	return size;
+#endif
 }
 
-extern "C" __declspec(dllexport) void* __cdecl GpuRamDrive(
-	const char *file,
-	int read_only,
-	dllread_proc *dllread,
-	dllwrite_proc *dllwrite,
-	dllclose_proc *dllclose,
-	off_t_64 *size)
+void GPURamDrive::ImdiskSetupComm(const std::wstring& ServiceName)
 {
-	void* err = (void*)-1;
+	MEMORY_BASIC_INFORMATION MemInfo;
+	ULARGE_INTEGER MapSize;
+	DWORD dwErr;
+	std::wstring sTemp;
+	const std::wstring sPrefix = L"Global\\";
 
-	cl_int clRet;
-	cl_platform_id platforms[4];
-	cl_uint numPlatforms;
-	cl_device_id devices[16];
-	cl_uint numDevices;
+	m_BufSize = (2 << 20);
+	MapSize.QuadPart = m_BufSize + IMDPROXY_HEADER_SIZE;
 
-	*dllread = GpuRead;
-	*dllwrite = GpuWrite;
-	*dllclose = GpuClose;
-	*size = 0llu;
-
-	off_t_64 targetSize = _atoi64(file);
-
-	printf("Read-only: %d\n", read_only);
-	printf("Size requested: %llu\n", targetSize);
-
-#if TEST_HOST_RAM
-	pBuff = (char*)VirtualAlloc(NULL, targetSize, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-	printf("Address = 0x%p\n", pBuff);
-#else
-
-	if ((clRet = clGetPlatformIDs(4, platforms, &numPlatforms)) != CL_SUCCESS) {
-		printf("Unable to get platform IDs: %u\n", clRet);
-		return err;
+	sTemp = sPrefix + ServiceName;
+	m_ShmHandle = CreateFileMapping(INVALID_HANDLE_VALUE,
+		NULL,
+		PAGE_READWRITE | SEC_COMMIT,
+		MapSize.HighPart,
+		MapSize.LowPart,
+		sTemp.c_str());
+	dwErr = GetLastError();
+	if (m_ShmHandle == NULL) {
+		throw std::runtime_error("Unable to create file mapping:" + std::to_string(dwErr));
 	}
 
-	printf("Total platform = %u: (Hardcoded using the last one)\n", numPlatforms);
-	for (cl_uint i = 0; i < numPlatforms; i++) {
-		char szPlatformName[64] = { 0 };
-		clGetPlatformInfo(platforms[i], CL_PLATFORM_NAME, sizeof(szPlatformName), szPlatformName, nullptr);
-
-		printf("  [%u]  %s\n", i, szPlatformName);
+	if (dwErr == ERROR_ALREADY_EXISTS) {
+		throw std::runtime_error("A service with this name is already running or is still being used by ImDisk");
 	}
 
-	if ((clRet = clGetDeviceIDs(platforms[numPlatforms - 1], CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_ACCELERATOR, 16, devices, &numDevices)) != CL_SUCCESS) {
-		printf("Unable to get GPU devices: %u\n", clRet);
-		return err;
-	}
-	printf("Total devices = %u: (Hardcoded using the first one)\n", numDevices);
-	for (cl_uint i = 0; i < numDevices; i++) {
-		char szDevName[64] = { 0 };
-		clGetDeviceInfo(devices[i], CL_DEVICE_VENDOR, sizeof(szDevName), szDevName, nullptr);
-		printf("  [%u]  %s\n", i, szDevName);
-	}
-	printf("---------------\n\n");
-
-	clContext = clCreateContext(nullptr, numDevices, devices, nullptr, nullptr, &clRet);
-	if (clContext == nullptr) {
-		printf("Unable to create context: %u\n", clRet);
-		return err;
+	m_ShmView = MapViewOfFile(m_ShmHandle, FILE_MAP_WRITE, 0, 0, 0);
+	if (m_ShmView == nullptr) {
+		dwErr = GetLastError();
+		throw std::runtime_error("Unable to map view of shared memory: " + std::to_string(dwErr));
 	}
 
-	clQueue = clCreateCommandQueue(clContext, devices[0], 0, &clRet);
-	if (clQueue == nullptr) {
-		printf("Unable to create command queue: %u\n", clRet);
-		return err;
+	if (!VirtualQuery(m_ShmView, &MemInfo, sizeof(MemInfo))) {
+		dwErr = GetLastError();
+		throw std::runtime_error("Unable to query memory info: " + std::to_string(dwErr));
 	}
 
-	clBuff = clCreateBuffer(clContext, (read_only ? CL_MEM_READ_ONLY : CL_MEM_READ_WRITE) | CL_MEM_ALLOC_HOST_PTR, targetSize, nullptr, &clRet);
-	if (clBuff == nullptr) {
-		printf("Unable to create memory buffer: %u\n", clRet);
-		return err;
+	m_BufStart = (char*)m_ShmView + IMDPROXY_HEADER_SIZE;
+
+
+	sTemp = sPrefix + ServiceName + L"_Server";
+	m_ShmMutexSrv = CreateMutex(NULL, FALSE, sTemp.c_str());
+	if (m_ShmMutexSrv == NULL) {
+		dwErr = GetLastError();
+		throw std::runtime_error("Unable to create mutex object: " + std::to_string(dwErr));
 	}
-#endif
 
-	*size = targetSize;
+	if (WaitForSingleObject(m_ShmMutexSrv, 0) != WAIT_OBJECT_0) {
+		throw std::runtime_error("A service with this name is already running");
+	}
 
-	return (void*)1;
+	sTemp = sPrefix + ServiceName + L"_Request";
+	m_ShmReqEvent = CreateEvent(NULL, FALSE, FALSE, sTemp.c_str());
+	if (m_ShmReqEvent == NULL) {
+		dwErr = GetLastError();
+		throw std::runtime_error("Unable to create request event object: " + std::to_string(dwErr));
+	}
+
+	sTemp = sPrefix + ServiceName + L"_Response";
+	m_ShmRespEvent = CreateEvent(NULL, FALSE, FALSE, sTemp.c_str());
+	if (m_ShmRespEvent == NULL) {
+		dwErr = GetLastError();
+		throw std::runtime_error("Unable to create response event object: " + std::to_string(dwErr));
+	}
+
+	ImdiskHandleComm();
+}
+
+void GPURamDrive::ImdiskHandleComm()
+{
+	PIMDPROXY_READ_REQ Req = (PIMDPROXY_READ_REQ)m_ShmView;
+	PIMDPROXY_READ_RESP Resp = (PIMDPROXY_READ_RESP)m_ShmView;
+
+	for (;;)
+	{
+		if (WaitForSingleObject(m_ShmReqEvent, INFINITE) != WAIT_OBJECT_0) {
+			return;
+		}
+
+		switch (Req->request_code)
+		{
+			case IMDPROXY_REQ_INFO:
+			{
+				PIMDPROXY_INFO_RESP resp = (PIMDPROXY_INFO_RESP)m_ShmView;
+				resp->file_size = m_MemSize;
+				resp->req_alignment = 1;
+				resp->flags = 0;
+				break;
+			}
+
+			case IMDPROXY_REQ_READ:
+			{
+				Resp->errorno = 0;
+				Resp->length = GpuRead(m_BufStart, (safeio_size_t)(Req->length < m_BufSize ? Req->length : m_BufSize), Req->offset);
+
+				break;
+			}
+
+			case IMDPROXY_REQ_WRITE:
+			{
+				Resp->errorno = 0;
+				Resp->length = GpuWrite(m_BufStart, (safeio_size_t)(Req->length < m_BufSize ? Req->length : m_BufSize), Req->offset);
+
+				break;
+			}
+
+			case IMDPROXY_REQ_CLOSE:
+				return;
+
+			default:
+				Req->request_code = ENODEV;
+		}
+
+		if (!SetEvent(m_ShmRespEvent)) {
+			return;
+		}
+	}
+}
+
+int main()
+{
+	GPURamDrive ramDrive;
+
+	try
+	{
+		ramDrive.RefreshGPUInfo();
+		auto v = ramDrive.GetGpuDevices();
+
+		cl_platform_id platform = 0;
+		cl_device_id device = 0;
+		for (auto it = v.begin(); it != v.end(); it++)
+		{
+			printf("  [%d] %s\n", 0, it->name.c_str());
+			platform = it->platform_id;
+			device = it->device_id;
+		}
+
+		ramDrive.CreateRamDevice(platform, device, L"GpuRamDrive1", 2 << 20);
+	}
+	catch (const std::exception& ex)
+	{
+		printf("Exception: %s\n", ex.what());
+		ramDrive.Close();
+	}
+
+	return 0;
 }
