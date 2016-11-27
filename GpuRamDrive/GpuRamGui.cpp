@@ -174,13 +174,13 @@ void GpuRamGui::OnMountClicked()
 		auto vGpu = m_RamDrive.GetGpuDevices();
 		int n = ComboBox_GetCurSel(m_CtlGpuList);
 
-		if (n >= vGpu.size()) {
+		if (n >= (int)vGpu.size()) {
 			MessageBox(m_hWnd, L"GPU selection is invalid", L"Error while selecting GPU", MB_OK);
 			return;
 		}
 
 		wchar_t szTemp[64] = { 0 };
-		Edit_GetText(m_CtlMemSize, szTemp, sizeof(szTemp));
+		Edit_GetText(m_CtlMemSize, szTemp, sizeof(szTemp) / sizeof(wchar_t));
 		safeio_size_t memSize = (safeio_size_t)_wtoi64(szTemp) * 1024 * 1024;
 
 		if (memSize >= vGpu[n].memsize) {
@@ -188,7 +188,7 @@ void GpuRamGui::OnMountClicked()
 			return;
 		}
 
-		ComboBox_GetText(m_CtlDriveLetter, szTemp, sizeof(szTemp));
+		ComboBox_GetText(m_CtlDriveLetter, szTemp, sizeof(szTemp) / sizeof(wchar_t));
 
 		try
 		{
