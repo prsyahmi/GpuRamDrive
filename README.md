@@ -13,16 +13,11 @@ People who interested in this might also want to check BadMemory: https://github
 
 ## Usage
 1. Install ImDisk Virtual drive
-2. Download GpuRamDrive from release section https://github.com/prsyahmi/GpuRamDrive/releases or Compile from source
-3. Run GpuRamDrive.exe
+2. Download GpuRamDrive from https://github.com/prsyahmi/GpuRamDrive/releases or Compile from source
+3. Run GpuRamDrive_x86.exe or GpuRamDrive_x64.exe according to your platform
 
 ## Compiling
 To compile, open the solution, configure the target platform and build the project.
-
-
-By using the batch file, the memory size allocated is defaulted to 1.5GB since most PCs nowadays have at least 2GB RAM available on their GPU. To change simply edit the batch file.
-
-The platform and device is also hardcoded, people who have multiple GPU might need to tweak them to use the correct one.
 
 ## License
 This project is licensed under MIT. See LICENSE.
