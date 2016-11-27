@@ -228,7 +228,7 @@ safeio_ssize_t GPURamDrive::GpuWrite(void *buf, safeio_size_t size, off_t_64 off
 	memcpy(pBuff + offset, buf, size);
 	return size;
 #else
-	if (clEnqueueWriteBuffer(m_Queue, m_GpuMem, CL_TRUE, offset, size, buf, 0, nullptr, nullptr) != CL_SUCCESS) {
+	if (clEnqueueWriteBuffer(m_Queue, m_GpuMem, CL_TRUE, (size_t)offset, (size_t)size, buf, 0, nullptr, nullptr) != CL_SUCCESS) {
 		return 0;
 	}
 
@@ -242,7 +242,7 @@ safeio_ssize_t GPURamDrive::GpuRead(void *buf, safeio_size_t size, off_t_64 offs
 	memcpy(buf, pBuff + offset, size);
 	return size;
 #else
-	if (clEnqueueReadBuffer(m_Queue, m_GpuMem, CL_TRUE, offset, size, buf, 0, nullptr, nullptr) != CL_SUCCESS) {
+	if (clEnqueueReadBuffer(m_Queue, m_GpuMem, CL_TRUE, (size_t)offset, (size_t)size, buf, 0, nullptr, nullptr) != CL_SUCCESS) {
 		return 0;
 	}
 
