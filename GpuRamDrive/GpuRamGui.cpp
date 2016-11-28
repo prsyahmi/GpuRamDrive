@@ -201,7 +201,7 @@ void GpuRamGui::OnMountClicked()
 	}
 	else
 	{
-		m_RamDrive.Close();
+		m_RamDrive.ImdiskUnmountDevice();
 	}
 }
 

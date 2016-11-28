@@ -1,5 +1,16 @@
 #pragma once
 
+#define GPU_API_HOSTMEM 0
+#define GPU_API_CUDA    1
+#define GPU_API_OPENCL  2
+
+#define GPU_API         GPU_API_OPENCL
+
+#if GPU_API == GPU_API_CUDA
+#include <cuda.h>
+#endif
+
+
 struct TGPUDevice
 {
 	cl_platform_id platform_id;
@@ -35,6 +46,12 @@ private:
 	void* m_ShmView;
 
 	void* m_BufStart;
+
+#if GPU_API == GPU_API_CUDA
+	CUdeviceptr m_cuDevPtr;
+	CUdevice m_cuDev;
+	CUcontext m_cuCtx;
+#endif
 
 public:
 	GPURamDrive();

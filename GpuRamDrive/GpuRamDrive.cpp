@@ -30,7 +30,11 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include <imdisk/imdproxy.h>
 #include "GpuRamDrive.h"
 
-#define TEST_HOST_RAM 0
+#if GPU_API == GPU_API_CUDA
+#pragma comment(lib, "cuda.lib")
+#endif
+
+
 
 GPURamDrive::GPURamDrive()
 	: m_MemSize(0)
@@ -44,8 +48,14 @@ GPURamDrive::GPURamDrive()
 	, m_ShmReqEvent(NULL)
 	, m_ShmRespEvent(NULL)
 	, m_ShmView(nullptr)
+#if GPU_API == GPU_API_CUDA
+	, m_cuDev(0)
+	, m_cuCtx(nullptr)
+#endif
 {
-
+#if GPU_API == GPU_API_CUDA
+	cuInit(0);
+#endif
 }
 
 GPURamDrive::~GPURamDrive()
@@ -55,6 +65,41 @@ GPURamDrive::~GPURamDrive()
 
 void GPURamDrive::RefreshGPUInfo()
 {
+#if GPU_API == GPU_API_HOSTMEM
+	TGPUDevice GpuDevices;
+	MEMORYSTATUSEX memStatus = { 0 };
+
+	memStatus.dwLength = sizeof(memStatus);
+	GlobalMemoryStatusEx(&memStatus);
+	GpuDevices.memsize = memStatus.ullTotalPhys;
+	GpuDevices.platform_id = 0;
+	GpuDevices.device_id = 0;
+	GpuDevices.name = "Host Memory";
+	m_Devices.push_back(GpuDevices);
+#elif GPU_API == GPU_API_CUDA
+	CUresult res;
+	int cuDevCount;
+
+	if ((res = cuDeviceGetCount(&cuDevCount)) != CUDA_SUCCESS) {
+		throw std::runtime_error("Unable to get cuda device count: " + std::to_string(res));
+	}
+
+	for (int i = 0; i < cuDevCount; i++) {
+		TGPUDevice GpuDevices;
+		CUdevice dev;
+
+		char szPlatformName[64] = { 0 };
+
+		cuDeviceGet(&dev, 0);
+		cuDeviceGetName(szPlatformName, sizeof(szPlatformName), dev);
+		cuDeviceTotalMem(&GpuDevices.memsize, dev);
+
+		GpuDevices.platform_id = 0;
+		GpuDevices.device_id = (cl_device_id)(0ui64 | (unsigned int)dev);
+		GpuDevices.name = szPlatformName;
+		m_Devices.push_back(GpuDevices);
+	}
+#else
 	cl_int clRet;
 	cl_platform_id platforms[8];
 	cl_uint numPlatforms;
@@ -94,6 +139,7 @@ void GPURamDrive::RefreshGPUInfo()
 			m_Devices.push_back(GpuDevices);
 		}
 	}
+#endif
 }
 
 const std::vector<TGPUDevice>& GPURamDrive::GetGpuDevices()
@@ -118,6 +164,7 @@ void GPURamDrive::CreateRamDevice(cl_platform_id PlatformId, cl_device_id Device
 			ImdiskSetupComm(ServiceName);
 			state = 1;
 			ImdiskHandleComm();
+			Close();
 		}
 		catch (const std::exception& ex)
 		{
@@ -191,6 +238,12 @@ void GPURamDrive::Close()
 	m_Context = nullptr;
 	m_MemSize = 0;
 
+#if GPU_API == GPU_API_CUDA
+	if (m_cuDevPtr) cuMemFree(m_cuDevPtr);
+	if (m_cuCtx) cuCtxDestroy(m_cuCtx);
+	m_cuDevPtr = 0;
+#endif
+
 	if (m_StateChangeCallback) m_StateChangeCallback();
 }
 
@@ -206,9 +259,20 @@ void GPURamDrive::SetStateChangeCallback(const std::function<void()> callback)
 
 void GPURamDrive::GpuAllocateRam()
 {
-#if TEST_HOST_RAM
+#if GPU_API == GPU_API_HOSTMEM
 	m_pBuff = new char[m_MemSize];
+#elif GPU_API == GPU_API_CUDA
+	CUresult res;
+
+	m_cuDev = (CUdevice)(UINT_PTR)(m_DeviceId);
+	m_DeviceId = 0;
+
+	cuCtxCreate(&m_cuCtx, 0, m_cuDev);
+	if ((res = cuMemAlloc(&m_cuDevPtr, (size_t)m_MemSize)) != CUDA_SUCCESS) {
+		throw std::runtime_error("Unable to allocate memory on device: " + std::to_string(res));
+	}
 #else
+
 	cl_int clRet;
 
 	m_Context = clCreateContext(nullptr, 1, &m_DeviceId, nullptr, nullptr, &clRet);
@@ -230,9 +294,15 @@ void GPURamDrive::GpuAllocateRam()
 
 safeio_ssize_t GPURamDrive::GpuWrite(void *buf, safeio_size_t size, off_t_64 offset)
 {
-#if TEST_HOST_RAM
+#if GPU_API == GPU_API_HOSTMEM
 	memcpy(m_pBuff + offset, buf, size);
 	return size;
+#elif GPU_API == GPU_API_CUDA
+	if (cuMemcpyHtoD(m_cuDevPtr + offset, buf, size) == CUDA_SUCCESS) {
+		return size;
+	}
+
+	return 0;
 #else
 	if (clEnqueueWriteBuffer(m_Queue, m_GpuMem, CL_TRUE, (size_t)offset, (size_t)size, buf, 0, nullptr, nullptr) != CL_SUCCESS) {
 		return 0;
@@ -244,9 +314,15 @@ safeio_ssize_t GPURamDrive::GpuWrite(void *buf, safeio_size_t size, off_t_64 off
 
 safeio_ssize_t GPURamDrive::GpuRead(void *buf, safeio_size_t size, off_t_64 offset)
 {
-#if TEST_HOST_RAM
+#if GPU_API == GPU_API_HOSTMEM
 	memcpy(buf, m_pBuff + offset, size);
 	return size;
+#elif GPU_API == GPU_API_CUDA
+	if (cuMemcpyDtoH(buf, m_cuDevPtr + offset, size) == CUDA_SUCCESS) {
+		return size;
+	}
+
+	return 0;
 #else
 	if (clEnqueueReadBuffer(m_Queue, m_GpuMem, CL_TRUE, (size_t)offset, (size_t)size, buf, 0, nullptr, nullptr) != CL_SUCCESS) {
 		return 0;
@@ -264,7 +340,7 @@ void GPURamDrive::ImdiskSetupComm(const std::wstring& ServiceName)
 	std::wstring sTemp;
 	const std::wstring sPrefix = L"Global\\";
 
-	m_BufSize = (2 << 20);
+	m_BufSize = (4 << 20);
 	MapSize.QuadPart = m_BufSize + IMDPROXY_HEADER_SIZE;
 
 	sTemp = sPrefix + ServiceName;
