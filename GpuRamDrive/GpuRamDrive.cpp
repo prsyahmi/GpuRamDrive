@@ -31,13 +31,13 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "GpuRamDrive.h"
 
 #define TEST_HOST_RAM 0
-char* pBuff = nullptr;
 
 GPURamDrive::GPURamDrive()
 	: m_MemSize(0)
 	, m_Context(nullptr)
 	, m_Queue(nullptr)
 	, m_GpuMem(nullptr)
+	, m_pBuff(nullptr)
 	, m_ImdDrive(INVALID_HANDLE_VALUE)
 	, m_ShmHandle(NULL)
 	, m_ShmMutexSrv(NULL)
@@ -174,6 +174,7 @@ void GPURamDrive::Close()
 	if (m_ShmReqEvent) CloseHandle(m_ShmReqEvent);
 	if (m_ShmRespEvent) CloseHandle(m_ShmRespEvent);
 
+	if (m_pBuff) delete[] m_pBuff;
 	if (m_GpuMem) clReleaseMemObject(m_GpuMem);
 	if (m_Queue) clReleaseCommandQueue(m_Queue);
 	if (m_Context) clReleaseContext(m_Context);
@@ -184,6 +185,7 @@ void GPURamDrive::Close()
 	m_ShmReqEvent = NULL;
 	m_ShmRespEvent = NULL;
 
+	m_pBuff = nullptr;
 	m_GpuMem = nullptr;
 	m_Queue = nullptr;
 	m_Context = nullptr;
@@ -204,6 +206,9 @@ void GPURamDrive::SetStateChangeCallback(const std::function<void()> callback)
 
 void GPURamDrive::GpuAllocateRam()
 {
+#if TEST_HOST_RAM
+	m_pBuff = new char[m_MemSize];
+#else
 	cl_int clRet;
 
 	m_Context = clCreateContext(nullptr, 1, &m_DeviceId, nullptr, nullptr, &clRet);
@@ -220,12 +225,13 @@ void GPURamDrive::GpuAllocateRam()
 	if (m_GpuMem == nullptr) {
 		throw std::runtime_error("Unable to create memory buffer: " + std::to_string(clRet));
 	}
+#endif
 }
 
 safeio_ssize_t GPURamDrive::GpuWrite(void *buf, safeio_size_t size, off_t_64 offset)
 {
 #if TEST_HOST_RAM
-	memcpy(pBuff + offset, buf, size);
+	memcpy(m_pBuff + offset, buf, size);
 	return size;
 #else
 	if (clEnqueueWriteBuffer(m_Queue, m_GpuMem, CL_TRUE, (size_t)offset, (size_t)size, buf, 0, nullptr, nullptr) != CL_SUCCESS) {
@@ -239,7 +245,7 @@ safeio_ssize_t GPURamDrive::GpuWrite(void *buf, safeio_size_t size, off_t_64 off
 safeio_ssize_t GPURamDrive::GpuRead(void *buf, safeio_size_t size, off_t_64 offset)
 {
 #if TEST_HOST_RAM
-	memcpy(buf, pBuff + offset, size);
+	memcpy(buf, m_pBuff + offset, size);
 	return size;
 #else
 	if (clEnqueueReadBuffer(m_Queue, m_GpuMem, CL_TRUE, (size_t)offset, (size_t)size, buf, 0, nullptr, nullptr) != CL_SUCCESS) {

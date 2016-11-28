@@ -25,6 +25,7 @@ private:
 	cl_context m_Context;
 	cl_command_queue m_Queue;
 	cl_mem m_GpuMem;
+	char* m_pBuff;
 
 	HANDLE m_ImdDrive;
 	HANDLE m_ShmHandle;
