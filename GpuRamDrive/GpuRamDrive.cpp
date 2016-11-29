@@ -92,7 +92,7 @@ void GPURamDrive::RefreshGPUInfo()
 
 		cuDeviceGet(&dev, 0);
 		cuDeviceGetName(szPlatformName, sizeof(szPlatformName), dev);
-		cuDeviceTotalMem(&GpuDevices.memsize, dev);
+		cuDeviceTotalMem((size_t*)&GpuDevices.memsize, dev);
 
 		GpuDevices.platform_id = 0;
 		GpuDevices.device_id = (cl_device_id)(0ui64 | (unsigned int)dev);
@@ -298,7 +298,7 @@ safeio_ssize_t GPURamDrive::GpuWrite(void *buf, safeio_size_t size, off_t_64 off
 	memcpy(m_pBuff + offset, buf, size);
 	return size;
 #elif GPU_API == GPU_API_CUDA
-	if (cuMemcpyHtoD(m_cuDevPtr + offset, buf, size) == CUDA_SUCCESS) {
+	if (cuMemcpyHtoD(m_cuDevPtr + (CUdeviceptr)offset, buf, size) == CUDA_SUCCESS) {
 		return size;
 	}
 
@@ -318,7 +318,7 @@ safeio_ssize_t GPURamDrive::GpuRead(void *buf, safeio_size_t size, off_t_64 offs
 	memcpy(buf, m_pBuff + offset, size);
 	return size;
 #elif GPU_API == GPU_API_CUDA
-	if (cuMemcpyDtoH(buf, m_cuDevPtr + offset, size) == CUDA_SUCCESS) {
+	if (cuMemcpyDtoH(buf, m_cuDevPtr + (CUdeviceptr)offset, size) == CUDA_SUCCESS) {
 		return size;
 	}
 
