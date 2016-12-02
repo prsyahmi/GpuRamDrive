@@ -9,18 +9,24 @@ Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
 		Debug|x86 = Debug|x86
-		Release|x64 = Release|x64
-		Release|x86 = Release|x86
+		Release-CUDA|x64 = Release-CUDA|x64
+		Release-CUDA|x86 = Release-CUDA|x86
+		Release-OpenCL|x64 = Release-OpenCL|x64
+		Release-OpenCL|x86 = Release-OpenCL|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{2FBA5171-ABA1-47B1-92F8-F8E7362806D9}.Debug|x64.ActiveCfg = Debug|x64
 		{2FBA5171-ABA1-47B1-92F8-F8E7362806D9}.Debug|x64.Build.0 = Debug|x64
 		{2FBA5171-ABA1-47B1-92F8-F8E7362806D9}.Debug|x86.ActiveCfg = Debug|Win32
 		{2FBA5171-ABA1-47B1-92F8-F8E7362806D9}.Debug|x86.Build.0 = Debug|Win32
-		{2FBA5171-ABA1-47B1-92F8-F8E7362806D9}.Release|x64.ActiveCfg = Release|x64
-		{2FBA5171-ABA1-47B1-92F8-F8E7362806D9}.Release|x64.Build.0 = Release|x64
-		{2FBA5171-ABA1-47B1-92F8-F8E7362806D9}.Release|x86.ActiveCfg = Release|Win32
-		{2FBA5171-ABA1-47B1-92F8-F8E7362806D9}.Release|x86.Build.0 = Release|Win32
+		{2FBA5171-ABA1-47B1-92F8-F8E7362806D9}.Release-CUDA|x64.ActiveCfg = Release-CUDA|x64
+		{2FBA5171-ABA1-47B1-92F8-F8E7362806D9}.Release-CUDA|x64.Build.0 = Release-CUDA|x64
+		{2FBA5171-ABA1-47B1-92F8-F8E7362806D9}.Release-CUDA|x86.ActiveCfg = Release-CUDA|Win32
+		{2FBA5171-ABA1-47B1-92F8-F8E7362806D9}.Release-CUDA|x86.Build.0 = Release-CUDA|Win32
+		{2FBA5171-ABA1-47B1-92F8-F8E7362806D9}.Release-OpenCL|x64.ActiveCfg = Release|x64
+		{2FBA5171-ABA1-47B1-92F8-F8E7362806D9}.Release-OpenCL|x64.Build.0 = Release|x64
+		{2FBA5171-ABA1-47B1-92F8-F8E7362806D9}.Release-OpenCL|x86.ActiveCfg = Release|Win32
+		{2FBA5171-ABA1-47B1-92F8-F8E7362806D9}.Release-OpenCL|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

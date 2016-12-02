@@ -4,7 +4,9 @@
 #define GPU_API_CUDA    1
 #define GPU_API_OPENCL  2
 
+#ifndef GPU_API
 #define GPU_API         GPU_API_OPENCL
+#endif
 
 #if GPU_API == GPU_API_CUDA
 #include <cuda.h>
