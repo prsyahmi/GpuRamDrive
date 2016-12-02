@@ -4,7 +4,7 @@
 #define GPU_API_CUDA    1
 #define GPU_API_OPENCL  2
 
-#define GPU_API         GPU_API_CUDA
+#define GPU_API         GPU_API_OPENCL
 
 #if GPU_API == GPU_API_CUDA
 #include <cuda.h>
@@ -26,8 +26,8 @@ private:
 
 	cl_platform_id m_PlatformId;
 	cl_device_id m_DeviceId;
-	safeio_size_t m_MemSize;
-	safeio_size_t m_BufSize;
+	size_t m_MemSize;
+	size_t m_BufSize;
 	std::wstring m_ServiceName;
 	std::wstring m_MountPoint;
 	std::thread m_GpuThread;
@@ -60,7 +60,7 @@ public:
 	void RefreshGPUInfo();
 	const std::vector<TGPUDevice>& GetGpuDevices();
 
-	void CreateRamDevice(cl_platform_id PlatformId, cl_device_id DeviceId, const std::wstring& ServiceName, safeio_size_t MemSize, const wchar_t* MountPoint);
+	void CreateRamDevice(cl_platform_id PlatformId, cl_device_id DeviceId, const std::wstring& ServiceName, size_t MemSize, const wchar_t* MountPoint);
 	void ImdiskMountDevice(const wchar_t* MountPoint);
 	void ImdiskUnmountDevice();
 	void Close();

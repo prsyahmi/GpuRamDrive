@@ -181,7 +181,7 @@ void GpuRamGui::OnMountClicked()
 
 		wchar_t szTemp[64] = { 0 };
 		Edit_GetText(m_CtlMemSize, szTemp, sizeof(szTemp) / sizeof(wchar_t));
-		safeio_size_t memSize = (safeio_size_t)_wtoi64(szTemp) * 1024 * 1024;
+		size_t memSize = (size_t)_wtoi64(szTemp) * 1024 * 1024;
 
 		if (memSize >= vGpu[n].memsize) {
 			MessageBox(m_hWnd, L"The memory size you specified is too large", L"Invalid memory size", MB_OK);

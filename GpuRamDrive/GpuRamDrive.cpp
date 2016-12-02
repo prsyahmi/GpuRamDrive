@@ -147,7 +147,7 @@ const std::vector<TGPUDevice>& GPURamDrive::GetGpuDevices()
 	return m_Devices;
 }
 
-void GPURamDrive::CreateRamDevice(cl_platform_id PlatformId, cl_device_id DeviceId, const std::wstring& ServiceName, safeio_size_t MemSize, const wchar_t* MountPoint)
+void GPURamDrive::CreateRamDevice(cl_platform_id PlatformId, cl_device_id DeviceId, const std::wstring& ServiceName, size_t MemSize, const wchar_t* MountPoint)
 {
 	m_PlatformId = PlatformId;
 	m_DeviceId = DeviceId;
@@ -268,7 +268,7 @@ void GPURamDrive::GpuAllocateRam()
 	m_DeviceId = 0;
 
 	cuCtxCreate(&m_cuCtx, 0, m_cuDev);
-	if ((res = cuMemAlloc(&m_cuDevPtr, (size_t)m_MemSize)) != CUDA_SUCCESS) {
+	if ((res = cuMemAlloc(&m_cuDevPtr, m_MemSize)) != CUDA_SUCCESS) {
 		throw std::runtime_error("Unable to allocate memory on device: " + std::to_string(res));
 	}
 #else
