@@ -213,6 +213,8 @@ void GPURamDrive::Close()
 
 	if (m_GpuThread.get_id() != std::this_thread::get_id()) {
 		if (m_GpuThread.joinable()) m_GpuThread.join();
+	} else {
+		m_GpuThread.detach();
 	}
 
 	if (m_ShmView) UnmapViewOfFile(m_ShmView);
