@@ -1,4 +1,5 @@
 #pragma once
+#include "GpuRamTrayIcon.h"
 
 
 class GpuRamGui
@@ -7,7 +8,9 @@ private:
 	GPURamDrive m_RamDrive;
 	HWND m_hWnd;
 	HINSTANCE m_Instance;
+	GpuRamTrayIcon m_Tray;
 
+	HICON m_Icon;
 	HWND m_CtlGpuList;
 	HWND m_CtlMountBtn;
 	HWND m_CtlMemSize;
@@ -25,8 +28,9 @@ public:
 private:
 	void OnCreate();
 	void OnDestroy();
-	void OnResize(WORD width, WORD height);
+	void OnResize(WORD width, WORD height, bool minimized);
 	void OnMountClicked();
+	void OnTrayInteraction(LPARAM lParam);
 	void UpdateState();
 
 	ATOM MyRegisterClass();
