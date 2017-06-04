@@ -107,10 +107,11 @@ int APIENTRY wWinMain(
 		}
 		catch (const std::exception& ex)
 		{
+			gui.RestoreWindow();
 			if (GetConsoleWindow() == NULL) {
 				MessageBoxA(NULL, ex.what(), "GpuRamDrive error", MB_OK);
 			}
-			printf("GpuRamDrive exception: %s\n", ex.what());
+			fprintf(stderr, "GpuRamDrive exception: %s\n", ex.what());
 		}
 	}
 

@@ -115,6 +115,12 @@ void GpuRamGui::Mount(const std::wstring& device, size_t size, const std::wstrin
 	Edit_SetText(m_CtlMemSize, szTemp);
 }
 
+void GpuRamGui::RestoreWindow()
+{
+	ShowWindow(m_hWnd, SW_RESTORE);
+	SetForegroundWindow(m_hWnd);
+}
+
 void GpuRamGui::OnCreate()
 {
 	SetWindowLongPtr(m_hWnd, GWL_STYLE, GetWindowLongPtr(m_hWnd, GWL_STYLE) & ~WS_SIZEBOX & ~WS_MAXIMIZEBOX);
