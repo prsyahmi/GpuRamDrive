@@ -88,6 +88,32 @@ int GpuRamGui::Loop()
 	return (int)msg.wParam;
 }
 
+void GpuRamGui::Mount(const std::wstring& device, size_t size, const std::wstring& driveLetter)
+{
+	bool found = false;
+	int n = 0;
+	size_t memSize = size * 1024 * 1024;
+
+	auto vGpu = m_RamDrive.GetGpuDevices();
+	for (auto it = vGpu.begin(); it != vGpu.end(); it++, n++) {
+		if (ToWide(it->name).find(device) != std::string::npos) {
+			found = true;
+			break;
+		}
+	}
+
+	if (!found) throw std::runtime_error("Unable to find device specified");
+
+	m_RamDrive.CreateRamDevice(vGpu[n].platform_id, vGpu[n].device_id, L"GpuRamDev", memSize, driveLetter.c_str());
+
+	ComboBox_SetCurSel(m_CtlGpuList, n);
+	ComboBox_SetCurSel(m_CtlDriveLetter, (driveLetter[0] <= 'Z' ? driveLetter[0] - 'A' : driveLetter[0] - 'a'));
+
+	wchar_t szTemp[64];
+	_itow_s(size, szTemp, 10);
+	Edit_SetText(m_CtlMemSize, szTemp);
+}
+
 void GpuRamGui::OnCreate()
 {
 	SetWindowLongPtr(m_hWnd, GWL_STYLE, GetWindowLongPtr(m_hWnd, GWL_STYLE) & ~WS_SIZEBOX & ~WS_MAXIMIZEBOX);
