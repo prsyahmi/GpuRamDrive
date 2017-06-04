@@ -36,6 +36,7 @@ const wchar_t GPU_HELP_STRING[] = L"Usage:\n"
 "  --device <Device Name>   Search string for device\n"
 "  --size <Size in MB>      Size to be allocated for ram drive\n"
 "  --mount <Drive letter>   Mount drive\n"
+"  --hide                   Hide GUI\n"
 "  --help                   Show this help\n";
 
 
@@ -70,6 +71,10 @@ int APIENTRY wWinMain(
 			else if (_wcsicmp(szArglist[i], L"--mount") == 0 && i + 1 < nArgs)
 			{
 				GpuDriveLetter = szArglist[i + 1];
+			}
+			else if (_wcsicmp(szArglist[i], L"--hide") == 0)
+			{
+				nCmdShow = SW_HIDE;
 			}
 			else if (_wcsicmp(szArglist[i], L"--help") == 0 ||
 				_wcsicmp(szArglist[i], L"-h") == 0 ||
