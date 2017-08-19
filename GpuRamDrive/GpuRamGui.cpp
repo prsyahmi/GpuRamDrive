@@ -66,7 +66,7 @@ bool GpuRamGui::Create(HINSTANCE hInst, const std::wstring& title, int nCmdShow)
 	MyRegisterClass();
 
 	m_hWnd = CreateWindowW(GPU_GUI_CLASS, title.c_str(), WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT, 0, 700, 300, nullptr, nullptr, m_Instance, this);
+		CW_USEDEFAULT, 0, 700, 320, nullptr, nullptr, m_Instance, this);
 
 	if (!m_hWnd) return false;
 
@@ -138,6 +138,9 @@ void GpuRamGui::OnCreate()
 	hStatic = CreateWindow(L"STATIC", L"Drive Letter:", WS_CHILD | WS_VISIBLE | SS_NOPREFIX, 10, 93, 140, 20, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(hStatic, WM_SETFONT, (WPARAM)FontNormal, TRUE);
 
+	hStatic = CreateWindow(L"STATIC", L"Format Parameters:", WS_CHILD | WS_VISIBLE | SS_NOPREFIX, 10, 133, 140, 20, m_hWnd, NULL, m_Instance, NULL);
+	SendMessage(hStatic, WM_SETFONT, (WPARAM)FontNormal, TRUE);
+
 	m_CtlGpuList = CreateWindow(L"COMBOBOX", NULL, WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST, 150, 10, 150, 25, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(m_CtlGpuList, WM_SETFONT, (WPARAM)FontNormal, TRUE);
 
@@ -147,7 +150,10 @@ void GpuRamGui::OnCreate()
 	m_CtlDriveLetter = CreateWindow(L"COMBOBOX", NULL, WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST, 150, 90, 150, 25, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(m_CtlDriveLetter, WM_SETFONT, (WPARAM)FontNormal, TRUE);
 
-	m_CtlMountBtn = CreateWindow(L"BUTTON", L"Mount", WS_CHILD | WS_VISIBLE | WS_TABSTOP, 150, 150, 150, 40, m_hWnd, NULL, m_Instance, NULL);
+	m_CtlFormatParam = CreateWindow(L"EDIT", L"/fs:exfat /q", WS_CHILD | WS_VISIBLE | WS_BORDER | WS_TABSTOP, 150, 130, 150, 25, m_hWnd, NULL, m_Instance, NULL);
+	SendMessage(m_CtlFormatParam, WM_SETFONT, (WPARAM)FontNormal, TRUE);
+
+	m_CtlMountBtn = CreateWindow(L"BUTTON", L"Mount", WS_CHILD | WS_VISIBLE | WS_TABSTOP, 150, 190, 150, 40, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(m_CtlMountBtn, WM_SETFONT, (WPARAM)FontBold, TRUE);
 
 	wchar_t szTemp[64];
@@ -224,8 +230,12 @@ void GpuRamGui::OnMountClicked()
 		}
 
 		wchar_t szTemp[64] = { 0 };
+
 		Edit_GetText(m_CtlMemSize, szTemp, sizeof(szTemp) / sizeof(wchar_t));
 		size_t memSize = (size_t)_wtoi64(szTemp) * 1024 * 1024;
+
+		Edit_GetText(m_CtlFormatParam, szTemp, sizeof(szTemp) / sizeof(wchar_t));
+		std::wstring formatParam = szTemp;
 
 		if (memSize >= vGpu[n].memsize) {
 			MessageBox(m_hWnd, L"The memory size you specified is too large", L"Invalid memory size", MB_OK);
@@ -236,7 +246,7 @@ void GpuRamGui::OnMountClicked()
 
 		try
 		{
-			m_RamDrive.CreateRamDevice(vGpu[n].platform_id, vGpu[n].device_id, L"GpuRamDev", memSize, szTemp, L"");
+			m_RamDrive.CreateRamDevice(vGpu[n].platform_id, vGpu[n].device_id, L"GpuRamDev", memSize, szTemp, formatParam);
 		}
 		catch (const std::exception& ex)
 		{
