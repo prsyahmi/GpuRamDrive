@@ -62,7 +62,7 @@ public:
 	void RefreshGPUInfo();
 	const std::vector<TGPUDevice>& GetGpuDevices();
 
-	void CreateRamDevice(cl_platform_id PlatformId, cl_device_id DeviceId, const std::wstring& ServiceName, size_t MemSize, const wchar_t* MountPoint);
+	void CreateRamDevice(cl_platform_id PlatformId, cl_device_id DeviceId, const std::wstring& ServiceName, size_t MemSize, const wchar_t* MountPoint, const std::wstring& FormatParam);
 	void ImdiskMountDevice(const wchar_t* MountPoint);
 	void ImdiskUnmountDevice();
 	void Close();

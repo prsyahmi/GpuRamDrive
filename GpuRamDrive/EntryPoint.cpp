@@ -33,10 +33,11 @@ const wchar_t GPU_HELP_STRING[] = L"Usage:\n"
 "  GpuRamDrive.exe --device CUDA --size 256 --mount j:\n"
 "\n"
 "Options:\n"
-"  --device <Device Name>   Search string for device\n"
+"  --device <Device Name>   Search string for GPU device\n"
 "  --size <Size in MB>      Size to be allocated for ram drive\n"
 "  --mount <Drive letter>   Mount drive\n"
-"  --hide                   Hide GUI\n"
+"  --format <Parameters>    Format and pass parameters to Windows' format\n"
+"  --hide                   Hide GUI to tray\n"
 "  --help                   Show this help\n";
 
 
@@ -55,6 +56,7 @@ int APIENTRY wWinMain(
 	LPWSTR GpuDevice = nullptr;
 	size_t GpuSize = 0;
 	LPWSTR GpuDriveLetter = nullptr;
+	LPWSTR GpuFormatParam = L"";
 	bool GpuMount = false;
 	bool HelpRequest = false;
 
@@ -71,6 +73,10 @@ int APIENTRY wWinMain(
 			else if (_wcsicmp(szArglist[i], L"--mount") == 0 && i + 1 < nArgs)
 			{
 				GpuDriveLetter = szArglist[i + 1];
+			}
+			else if (_wcsicmp(szArglist[i], L"--format") == 0 && i + 1 < nArgs)
+			{
+				GpuFormatParam = szArglist[i + 1];
 			}
 			else if (_wcsicmp(szArglist[i], L"--hide") == 0)
 			{
@@ -103,7 +109,7 @@ int APIENTRY wWinMain(
 	if (GpuMount) {
 		try
 		{
-			gui.Mount(GpuDevice, GpuSize, GpuDriveLetter);
+			gui.Mount(GpuDevice, GpuSize, GpuDriveLetter, GpuFormatParam);
 		}
 		catch (const std::exception& ex)
 		{

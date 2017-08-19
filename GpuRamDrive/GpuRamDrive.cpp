@@ -147,7 +147,7 @@ const std::vector<TGPUDevice>& GPURamDrive::GetGpuDevices()
 	return m_Devices;
 }
 
-void GPURamDrive::CreateRamDevice(cl_platform_id PlatformId, cl_device_id DeviceId, const std::wstring& ServiceName, size_t MemSize, const wchar_t* MountPoint)
+void GPURamDrive::CreateRamDevice(cl_platform_id PlatformId, cl_device_id DeviceId, const std::wstring& ServiceName, size_t MemSize, const wchar_t* MountPoint, const std::wstring& FormatParam)
 {
 	m_PlatformId = PlatformId;
 	m_DeviceId = DeviceId;
@@ -190,6 +190,31 @@ void GPURamDrive::CreateRamDevice(cl_platform_id PlatformId, cl_device_id Device
 	}
 
 	ImdiskMountDevice(MountPoint);
+
+	if (FormatParam.length()) {
+		wchar_t formatCommand[128] = { 0 };
+		STARTUPINFO StartInfo = { 0 };
+		PROCESS_INFORMATION ProcInfo = { 0 };
+
+		_snwprintf_s(formatCommand, sizeof(formatCommand), L"format.com %s %s", MountPoint, FormatParam.c_str());
+		if (wcsstr(formatCommand, L"/y") == nullptr && wcsstr(formatCommand, L"/Y") == nullptr) {
+			wcscat_s(formatCommand, L" /y");
+		}
+
+		CreateProcess(nullptr,
+			formatCommand,
+			nullptr,
+			nullptr,
+			TRUE,
+			CREATE_NO_WINDOW | NORMAL_PRIORITY_CLASS,
+			nullptr,
+			nullptr,
+			&StartInfo,
+			&ProcInfo);
+
+		WaitForSingleObject(ProcInfo.hProcess, INFINITE);
+	}
+
 	if (m_StateChangeCallback) m_StateChangeCallback();
 }
 

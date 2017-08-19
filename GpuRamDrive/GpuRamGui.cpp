@@ -89,7 +89,7 @@ int GpuRamGui::Loop()
 	return (int)msg.wParam;
 }
 
-void GpuRamGui::Mount(const std::wstring& device, size_t size, const std::wstring& driveLetter)
+void GpuRamGui::Mount(const std::wstring& device, size_t size, const std::wstring& driveLetter, const std::wstring& formatParam)
 {
 	bool found = false;
 	int n = 0;
@@ -105,7 +105,7 @@ void GpuRamGui::Mount(const std::wstring& device, size_t size, const std::wstrin
 
 	if (!found) throw std::runtime_error("Unable to find device specified");
 
-	m_RamDrive.CreateRamDevice(vGpu[n].platform_id, vGpu[n].device_id, L"GpuRamDev", memSize, driveLetter.c_str());
+	m_RamDrive.CreateRamDevice(vGpu[n].platform_id, vGpu[n].device_id, L"GpuRamDev", memSize, driveLetter.c_str(), formatParam);
 
 	ComboBox_SetCurSel(m_CtlGpuList, n);
 	ComboBox_SetCurSel(m_CtlDriveLetter, (driveLetter[0] <= 'Z' ? driveLetter[0] - 'A' : driveLetter[0] - 'a'));
@@ -236,7 +236,7 @@ void GpuRamGui::OnMountClicked()
 
 		try
 		{
-			m_RamDrive.CreateRamDevice(vGpu[n].platform_id, vGpu[n].device_id, L"GpuRamDev", memSize, szTemp);
+			m_RamDrive.CreateRamDevice(vGpu[n].platform_id, vGpu[n].device_id, L"GpuRamDev", memSize, szTemp, L"");
 		}
 		catch (const std::exception& ex)
 		{
