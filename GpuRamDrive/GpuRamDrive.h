@@ -78,11 +78,11 @@ public:
 	void CreateRamDevice(cl_platform_id PlatformId, cl_device_id DeviceId, const std::wstring& ServiceName, size_t MemSize, const wchar_t* MountPoint, const std::wstring& FormatParam);
 	void ImdiskMountDevice(const wchar_t* MountPoint);
 	void ImdiskUnmountDevice();
-	void Close();
 	bool IsMounted();
 	void SetStateChangeCallback(const std::function<void()> callback);
 
 private:
+	void Close();
 	void GpuAllocateRam();
 	safeio_ssize_t GpuWrite(void *buf, safeio_size_t size, off_t_64 offset);
 	safeio_ssize_t GpuRead(void *buf, safeio_size_t size, off_t_64 offset);

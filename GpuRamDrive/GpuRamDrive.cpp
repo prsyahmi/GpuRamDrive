@@ -62,7 +62,7 @@ GPURamDrive::GPURamDrive()
 
 GPURamDrive::~GPURamDrive()
 {
-	Close();
+	ImdiskUnmountDevice();
 }
 
 void GPURamDrive::RefreshGPUInfo()
@@ -265,18 +265,14 @@ void GPURamDrive::ImdiskUnmountDevice()
 	
 	ImDiskRemoveDevice(NULL, 0, m_MountPoint.c_str());
 	m_MountPoint.clear();
+
+	if (m_GpuThread.get_id() != std::this_thread::get_id()) {
+		if (m_GpuThread.joinable()) m_GpuThread.join();
+	}
 }
 
 void GPURamDrive::Close()
 {
-	ImdiskUnmountDevice();
-
-	if (m_GpuThread.get_id() != std::this_thread::get_id()) {
-		if (m_GpuThread.joinable()) m_GpuThread.join();
-	} else {
-		m_GpuThread.detach();
-	}
-
 	if (m_ShmView) UnmapViewOfFile(m_ShmView);
 	if (m_ShmHandle) CloseHandle(m_ShmHandle);
 	if (m_ShmMutexSrv) CloseHandle(m_ShmMutexSrv);
