@@ -12,8 +12,8 @@ Using GPU RAM isn't as fast as host main memory, however it is still faster than
 People who interested in this might also want to check BadMemory: https://github.com/prsyahmi/BadMemory
 
 ## Usage
-1. Install ImDisk Virtual drive
-2. Download GpuRamDrive from https://github.com/prsyahmi/GpuRamDrive/releases or Compile from source
+1. Install ImDisk Virtual drive (http://www.ltr-data.se/opencode.html)
+2. Download GpuRamDrive from https://github.com/prsyahmi/GpuRamDrive/releases
 3. Run GpuRamDrive_x86.exe or GpuRamDrive_x64.exe according to your platform
 
 ## Compiling
