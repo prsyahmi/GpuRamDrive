@@ -21,10 +21,20 @@ struct TGPUDevice
 	std::string name;
 };
 
+enum EGpuRamDriveType
+{
+	eGpuRamDriveType_HD = IMDISK_DEVICE_TYPE_HD,
+	eGpuRamDriveType_FD = IMDISK_DEVICE_TYPE_FD,
+	eGpuRamDriveType_CD = IMDISK_DEVICE_TYPE_CD,
+	eGpuRamDriveType_RAW = IMDISK_DEVICE_TYPE_RAW,
+};
+
 class GPURamDrive
 {
 private:
 	std::vector<TGPUDevice> m_Devices;
+	EGpuRamDriveType m_DriveType;
+	bool m_DriveRemovable;
 
 	cl_platform_id m_PlatformId;
 	cl_device_id m_DeviceId;
@@ -62,6 +72,9 @@ public:
 	void RefreshGPUInfo();
 	const std::vector<TGPUDevice>& GetGpuDevices();
 
+	void SetDriveType(EGpuRamDriveType type);
+	void SetDriveType(const wchar_t* type);
+	void SetRemovable(bool removable);
 	void CreateRamDevice(cl_platform_id PlatformId, cl_device_id DeviceId, const std::wstring& ServiceName, size_t MemSize, const wchar_t* MountPoint, const std::wstring& FormatParam);
 	void ImdiskMountDevice(const wchar_t* MountPoint);
 	void ImdiskUnmountDevice();

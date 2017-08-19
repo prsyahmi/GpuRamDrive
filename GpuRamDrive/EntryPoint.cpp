@@ -37,6 +37,8 @@ const wchar_t GPU_HELP_STRING[] = L"Usage:\n"
 "  --size <Size in MB>      Size to be allocated for ram drive\n"
 "  --mount <Drive letter>   Mount drive\n"
 "  --format <Parameters>    Format and pass parameters to Windows' format\n"
+"  --type <type>            Drive type: hd or fd\n"
+"  --removable              Create a removable drive\n"
 "  --hide                   Hide GUI to tray\n"
 "  --help                   Show this help\n";
 
@@ -57,6 +59,8 @@ int APIENTRY wWinMain(
 	size_t GpuSize = 0;
 	LPWSTR GpuDriveLetter = nullptr;
 	LPWSTR GpuFormatParam = L"";
+	LPWSTR GpuDriveType = L"HD";
+	bool GpuDriveRemovable = false;
 	bool GpuMount = false;
 	bool HelpRequest = false;
 
@@ -77,6 +81,14 @@ int APIENTRY wWinMain(
 			else if (_wcsicmp(szArglist[i], L"--format") == 0 && i + 1 < nArgs)
 			{
 				GpuFormatParam = szArglist[i + 1];
+			}
+			else if (_wcsicmp(szArglist[i], L"--type") == 0 && i + 1 < nArgs)
+			{
+				GpuDriveType = szArglist[i + 1];
+			}
+			else if (_wcsicmp(szArglist[i], L"--removable") == 0)
+			{
+				GpuDriveRemovable = true;
 			}
 			else if (_wcsicmp(szArglist[i], L"--hide") == 0)
 			{
@@ -109,7 +121,7 @@ int APIENTRY wWinMain(
 	if (GpuMount) {
 		try
 		{
-			gui.Mount(GpuDevice, GpuSize, GpuDriveLetter, GpuFormatParam);
+			gui.Mount(GpuDevice, GpuSize, GpuDriveLetter, GpuFormatParam, GpuDriveType, GpuDriveRemovable);
 		}
 		catch (const std::exception& ex)
 		{

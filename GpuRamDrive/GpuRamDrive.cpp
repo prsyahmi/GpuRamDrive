@@ -37,7 +37,9 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 
 GPURamDrive::GPURamDrive()
-	: m_MemSize(0)
+	: m_DriveType(eGpuRamDriveType_HD)
+	, m_DriveRemovable(false)
+	, m_MemSize(0)
 	, m_Context(nullptr)
 	, m_Queue(nullptr)
 	, m_GpuMem(nullptr)
@@ -147,6 +149,31 @@ const std::vector<TGPUDevice>& GPURamDrive::GetGpuDevices()
 	return m_Devices;
 }
 
+void GPURamDrive::SetDriveType(EGpuRamDriveType type)
+{
+	m_DriveType = type;
+}
+
+void GPURamDrive::SetDriveType(const wchar_t* type)
+{
+	if (type == nullptr) return;
+
+	if (_wcsicmp(type, L"HD") == 0) {
+		m_DriveType = eGpuRamDriveType_HD;
+	} else if (_wcsicmp(type, L"FD") == 0) {
+		m_DriveType = eGpuRamDriveType_FD;
+	} else if (_wcsicmp(type, L"CD") == 0) {
+		m_DriveType = eGpuRamDriveType_CD;
+	} else if (_wcsicmp(type, L"RAW") == 0) {
+		m_DriveType = eGpuRamDriveType_RAW;
+	}
+}
+
+void GPURamDrive::SetRemovable(bool removable)
+{
+	m_DriveRemovable = removable;
+}
+
 void GPURamDrive::CreateRamDevice(cl_platform_id PlatformId, cl_device_id DeviceId, const std::wstring& ServiceName, size_t MemSize, const wchar_t* MountPoint, const std::wstring& FormatParam)
 {
 	m_PlatformId = PlatformId;
@@ -221,11 +248,13 @@ void GPURamDrive::CreateRamDevice(cl_platform_id PlatformId, cl_device_id Device
 void GPURamDrive::ImdiskMountDevice(const wchar_t* MountPoint)
 {
 	DISK_GEOMETRY dskGeom = { 0 };
+	DWORD flags = IMDISK_TYPE_PROXY | IMDISK_PROXY_TYPE_SHM | (DWORD)m_DriveType;
+	if (m_DriveRemovable) flags |= IMDISK_OPTION_REMOVABLE;
 
 	ImDiskSetAPIFlags(IMDISK_API_FORCE_DISMOUNT);
 
 	m_MountPoint = MountPoint;
-	if (!ImDiskCreateDevice(NULL, &dskGeom, nullptr, IMDISK_TYPE_PROXY | IMDISK_PROXY_TYPE_SHM | IMDISK_DEVICE_TYPE_HD, m_ServiceName.c_str(), FALSE, (LPWSTR)MountPoint)) {
+	if (!ImDiskCreateDevice(NULL, &dskGeom, nullptr, flags, m_ServiceName.c_str(), FALSE, (LPWSTR)MountPoint)) {
 		throw std::runtime_error("Unable to create and mount ImDisk drive");
 	}
 }

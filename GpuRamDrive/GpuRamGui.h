@@ -24,7 +24,7 @@ public:
 
 	bool Create(HINSTANCE hInst, const std::wstring& title, int nCmdShow);
 	int Loop();
-	void Mount(const std::wstring& device, size_t size, const std::wstring& driveLetter, const std::wstring& formatParam);
+	void Mount(const std::wstring& device, size_t size, const std::wstring& driveLetter, const std::wstring& formatParam, const std::wstring& driveType, bool removable);
 	void RestoreWindow();
 
 private:
