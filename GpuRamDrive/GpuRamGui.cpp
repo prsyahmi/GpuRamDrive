@@ -349,7 +349,9 @@ LRESULT CALLBACK GpuRamGui::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 		{
 			if (_this) {
 				if ((HANDLE)lParam == _this->m_CtlMountBtn) {
+					EnableWindow(_this->m_CtlMountBtn, FALSE);
 					_this->OnMountClicked();
+					EnableWindow(_this->m_CtlMountBtn, TRUE);
 				}
 			}
 			break;

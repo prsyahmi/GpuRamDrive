@@ -157,6 +157,12 @@ void GPURamDrive::CreateRamDevice(cl_platform_id PlatformId, cl_device_id Device
 	std::exception state_ex;
 	std::atomic<int> state = 0;
 
+	// Avoid creating ram-device when it is still unmounting, usually when user do fast mount/unmount clicking.
+	if (m_GpuThread.joinable()) {
+		if (m_StateChangeCallback) m_StateChangeCallback();
+		return;
+	}
+
 	m_GpuThread = std::thread([&]() {
 		try
 		{
