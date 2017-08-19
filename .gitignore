@@ -2,6 +2,8 @@ tmp
 Debug
 Release
 Release-CUDA
+Release-*
+Debug-*
 ipch
 *.suo
 *.opensdf
