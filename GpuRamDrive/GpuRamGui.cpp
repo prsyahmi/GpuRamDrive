@@ -219,6 +219,11 @@ void GpuRamGui::OnDestroy()
 	PostQuitMessage(0);
 }
 
+void GpuRamGui::OnEndSession()
+{
+	m_RamDrive.ImdiskUnmountDevice();
+}
+
 void GpuRamGui::OnResize(WORD width, WORD height, bool minimized)
 {
 	MoveWindow(m_CtlGpuList, 150, 10, width - 150 - 20, 20, TRUE);
@@ -364,6 +369,10 @@ LRESULT CALLBACK GpuRamGui::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 			}
 			break;
 		}
+
+		case WM_ENDSESSION:
+			if (_this) _this->OnEndSession();
+			break;
 
 		case WM_DESTROY:
 			if (_this) _this->OnDestroy();

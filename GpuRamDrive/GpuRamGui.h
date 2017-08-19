@@ -32,6 +32,7 @@ public:
 private:
 	void OnCreate();
 	void OnDestroy();
+	void OnEndSession();
 	void OnResize(WORD width, WORD height, bool minimized);
 	void OnMountClicked();
 	void OnTrayInteraction(LPARAM lParam);
