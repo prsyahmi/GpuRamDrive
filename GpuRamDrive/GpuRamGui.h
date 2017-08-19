@@ -15,6 +15,8 @@ private:
 	HWND m_CtlMountBtn;
 	HWND m_CtlMemSize;
 	HWND m_CtlDriveLetter;
+	HWND m_CtlDriveType;
+	HWND m_CtlDriveRemovable;
 	HWND m_CtlFormatParam;
 	bool m_UpdateState;
 
