@@ -179,17 +179,28 @@ void GpuRamGui::OnCreate()
 	ComboBox_AddString(m_CtlDriveRemovable, L"Non-Removable");
 	ComboBox_AddString(m_CtlDriveRemovable, L"Removable");
 
+	int suggestedGpuList = -1;
 	int suggestedRamSize = 1;
 	try
 	{
 		m_RamDrive.RefreshGPUInfo();
 		auto v = m_RamDrive.GetGpuDevices();
+		int index = -1;
 		for (auto it = v.begin(); it != v.end(); it++)
 		{
+			index++;
 			ComboBox_AddString(m_CtlGpuList, ToWide(it->name + " (" + std::to_string(it->memsize / (1024 * 1024)) + " MB)").c_str());
-			if (it->memsize) {
+			if (suggestedGpuList == -1) {
 				suggestedRamSize = (int)(it->memsize * 0.8 / 1024 / 1024);
 			}
+
+			if (it->name.find("GeForce") != std::string::npos || it->name.find("AMD") != std::string::npos) {
+				suggestedRamSize = (int)(it->memsize * 0.8 / 1024 / 1024);
+				suggestedGpuList = index;
+			}
+		}
+		if (suggestedGpuList == -1) {
+			suggestedGpuList = ComboBox_GetCount(m_CtlGpuList) - 1;
 		}
 	}
 	catch (const std::exception& ex)
@@ -197,7 +208,7 @@ void GpuRamGui::OnCreate()
 		ComboBox_AddString(m_CtlGpuList, ToWide(ex.what()).c_str());
 	}
 
-	ComboBox_SetCurSel(m_CtlGpuList, ComboBox_GetCount(m_CtlGpuList) - 1);
+	ComboBox_SetCurSel(m_CtlGpuList, suggestedGpuList);
 	ComboBox_SetCurSel(m_CtlDriveLetter, 'R' - 'A');
 	ComboBox_SetCurSel(m_CtlDriveType, 0);
 	ComboBox_SetCurSel(m_CtlDriveRemovable, 0);
@@ -405,6 +416,21 @@ LRESULT CALLBACK GpuRamGui::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 					EnableWindow(_this->m_CtlMountBtn, FALSE);
 					_this->OnMountClicked();
 					EnableWindow(_this->m_CtlMountBtn, TRUE);
+				}
+
+				if ((HANDLE)lParam == _this->m_CtlGpuList) {
+					if (HIWORD(wParam) == CBN_SELCHANGE) {
+
+						int ItemIndex = SendMessage((HWND)lParam, (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
+
+						TGPUDevice it = _this->m_RamDrive.GetGpuDevices().at(ItemIndex);
+						int suggestedRamSize = (int)(it.memsize * 0.8 / 1024 / 1024);
+
+						wchar_t szTemp[64];
+						wcscpy_s(szTemp, L"1");
+						_itow_s(suggestedRamSize, szTemp, 10);
+						Edit_SetText(_this->m_CtlMemSize, szTemp);
+					}
 				}
 			}
 			break;
