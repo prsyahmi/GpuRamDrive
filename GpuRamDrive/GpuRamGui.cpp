@@ -89,7 +89,7 @@ int GpuRamGui::Loop()
 	return (int)msg.wParam;
 }
 
-void GpuRamGui::Mount(const std::wstring& device, size_t size, const std::wstring& driveLetter, const std::wstring& formatParam, const std::wstring& driveType, bool removable)
+void GpuRamGui::Mount(const std::wstring& device, size_t size, const std::wstring& driveLetter, const std::wstring& formatParam, const std::wstring& labelParam, const std::wstring& driveType, bool removable)
 {
 	bool found = false;
 	int n = 0;
@@ -107,7 +107,7 @@ void GpuRamGui::Mount(const std::wstring& device, size_t size, const std::wstrin
 
 	m_RamDrive.SetDriveType(driveType.c_str());
 	m_RamDrive.SetRemovable(removable);
-	m_RamDrive.CreateRamDevice(vGpu[n].platform_id, vGpu[n].device_id, L"GpuRamDev", memSize, driveLetter.c_str(), formatParam);
+	m_RamDrive.CreateRamDevice(vGpu[n].platform_id, vGpu[n].device_id, L"GpuRamDev", memSize, driveLetter.c_str(), formatParam, labelParam);
 
 	ComboBox_SetCurSel(m_CtlGpuList, n);
 	ComboBox_SetCurSel(m_CtlDriveLetter, (driveLetter[0] <= 'Z' ? driveLetter[0] - 'A' : driveLetter[0] - 'a'));
@@ -140,6 +140,9 @@ void GpuRamGui::OnCreate()
 	hStatic = CreateWindow(L"STATIC", L"Memory Size (MB):", WS_CHILD | WS_VISIBLE | SS_NOPREFIX, 10, 93, 140, 20, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(hStatic, WM_SETFONT, (WPARAM)FontNormal, TRUE);
 
+	hStatic = CreateWindow(L"STATIC", L"Volumen Label:", WS_CHILD | WS_VISIBLE | SS_NOPREFIX, 315, 93, 140, 20, m_hWnd, NULL, m_Instance, NULL);
+	SendMessage(hStatic, WM_SETFONT, (WPARAM)FontNormal, TRUE);
+
 	hStatic = CreateWindow(L"STATIC", L"Format Parameters:", WS_CHILD | WS_VISIBLE | SS_NOPREFIX, 10, 133, 140, 20, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(hStatic, WM_SETFONT, (WPARAM)FontNormal, TRUE);
 
@@ -155,6 +158,9 @@ void GpuRamGui::OnCreate()
 
 	m_CtlMemSize = CreateWindow(L"EDIT", L"1", WS_CHILD | WS_VISIBLE | WS_BORDER | WS_TABSTOP | ES_NUMBER, 150, 90, 150, 25, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(m_CtlMemSize, WM_SETFONT, (WPARAM)FontNormal, TRUE);
+
+	m_CtlLabel = CreateWindow(L"EDIT", L"RamDisk", WS_CHILD | WS_VISIBLE | WS_BORDER | WS_TABSTOP, 480, 90, 182, 25, m_hWnd, NULL, m_Instance, NULL);
+	SendMessage(m_CtlLabel, WM_SETFONT, (WPARAM)FontNormal, TRUE);
 
 	m_CtlFormatParam = CreateWindow(L"EDIT", L"/fs:exfat /q", WS_CHILD | WS_VISIBLE | WS_BORDER | WS_TABSTOP, 150, 130, 150, 25, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(m_CtlFormatParam, WM_SETFONT, (WPARAM)FontNormal, TRUE);
@@ -254,6 +260,9 @@ void GpuRamGui::OnMountClicked()
 		Edit_GetText(m_CtlFormatParam, szTemp, sizeof(szTemp) / sizeof(wchar_t));
 		std::wstring formatParam = szTemp;
 
+		Edit_GetText(m_CtlLabel, szTemp, sizeof(szTemp) / sizeof(wchar_t));
+		std::wstring labelParam = szTemp;
+
 		EGpuRamDriveType driveType = ComboBox_GetCurSel(m_CtlDriveType) == 0 ? eGpuRamDriveType_HD : eGpuRamDriveType_FD;
 		bool driveRemovable = ComboBox_GetCurSel(m_CtlDriveRemovable) == 0 ? false : true;
 
@@ -268,7 +277,7 @@ void GpuRamGui::OnMountClicked()
 		{
 			m_RamDrive.SetDriveType(driveType);
 			m_RamDrive.SetRemovable(driveRemovable);
-			m_RamDrive.CreateRamDevice(vGpu[n].platform_id, vGpu[n].device_id, L"GpuRamDev", memSize, szTemp, formatParam);
+			m_RamDrive.CreateRamDevice(vGpu[n].platform_id, vGpu[n].device_id, L"GpuRamDev", memSize, szTemp, formatParam, labelParam);
 		}
 		catch (const std::exception& ex)
 		{
@@ -310,6 +319,7 @@ void GpuRamGui::UpdateState()
 		EnableWindow(m_CtlDriveRemovable, FALSE);
 		EnableWindow(m_CtlGpuList, FALSE);
 		EnableWindow(m_CtlMemSize, FALSE);
+		EnableWindow(m_CtlLabel, FALSE);
 		EnableWindow(m_CtlFormatParam, FALSE);
 		Edit_SetText(m_CtlMountBtn, L"Unmount");
 	}
@@ -320,6 +330,7 @@ void GpuRamGui::UpdateState()
 		EnableWindow(m_CtlDriveRemovable, TRUE);
 		EnableWindow(m_CtlGpuList, TRUE);
 		EnableWindow(m_CtlMemSize, TRUE);
+		EnableWindow(m_CtlLabel, TRUE);
 		EnableWindow(m_CtlFormatParam, TRUE);
 		Edit_SetText(m_CtlMountBtn, L"Mount");
 	}
