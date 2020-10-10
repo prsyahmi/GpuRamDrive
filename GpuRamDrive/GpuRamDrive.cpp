@@ -174,7 +174,7 @@ void GPURamDrive::SetRemovable(bool removable)
 	m_DriveRemovable = removable;
 }
 
-void GPURamDrive::CreateRamDevice(cl_platform_id PlatformId, cl_device_id DeviceId, const std::wstring& ServiceName, size_t MemSize, const wchar_t* MountPoint, const std::wstring& FormatParam)
+void GPURamDrive::CreateRamDevice(cl_platform_id PlatformId, cl_device_id DeviceId, const std::wstring& ServiceName, size_t MemSize, const wchar_t* MountPoint, const std::wstring& FormatParam, const std::wstring& LabelParam)
 {
 	m_PlatformId = PlatformId;
 	m_DeviceId = DeviceId;
@@ -240,6 +240,10 @@ void GPURamDrive::CreateRamDevice(cl_platform_id PlatformId, cl_device_id Device
 			&ProcInfo);
 
 		WaitForSingleObject(ProcInfo.hProcess, INFINITE);
+
+		if (LabelParam.length()) {
+			SetVolumeLabel(MountPoint, LabelParam.c_str());
+		}
 	}
 
 	if (m_StateChangeCallback) m_StateChangeCallback();

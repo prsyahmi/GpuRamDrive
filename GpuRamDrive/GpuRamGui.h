@@ -17,6 +17,7 @@ private:
 	HWND m_CtlDriveLetter;
 	HWND m_CtlDriveType;
 	HWND m_CtlDriveRemovable;
+	HWND m_CtlLabel;
 	HWND m_CtlFormatParam;
 	bool m_UpdateState;
 
@@ -26,7 +27,7 @@ public:
 
 	bool Create(HINSTANCE hInst, const std::wstring& title, int nCmdShow);
 	int Loop();
-	void Mount(const std::wstring& device, size_t size, const std::wstring& driveLetter, const std::wstring& formatParam, const std::wstring& driveType, bool removable);
+	void Mount(const std::wstring& device, size_t size, const std::wstring& driveLetter, const std::wstring& formatParam, const std::wstring& labelParam, const std::wstring& driveType, bool removable);
 	void RestoreWindow();
 
 private:
