@@ -30,14 +30,15 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "GpuRamGui.h"
 
 const wchar_t GPU_HELP_STRING[] = L"Usage:\n"
-"  GpuRamDrive.exe --device CUDA --size 256 --mount j: --format \"/fs:exfat /q\" --label \"RamDrive\"\n"
+"  GpuRamDrive.exe --device CUDA --size 256 --mount j: --format exfat --label RamDrive\n"
 "\n"
 "Options:\n"
 "  --device <Device Name>   Search string for GPU device\n"
 "  --size <Size in MB>      Size to be allocated for ram drive\n"
 "  --mount <Drive letter>   Mount drive\n"
-"  --format <Parameters>    Format and pass parameters to Windows' format\n"
+"  --format <Parameters>    Format to exFAT (Default), FAT32 or NTFS\n"
 "  --label <Parameters>     Set drive label\n"
+"  --temp_folder            Create a temp folder\n"
 "  --type <type>            Drive type: hd or fd\n"
 "  --removable              Create a removable drive\n"
 "  --hide                   Hide GUI to tray\n"
@@ -59,12 +60,13 @@ int APIENTRY wWinMain(
 	LPWSTR GpuDevice = nullptr;
 	size_t GpuSize = 0;
 	LPWSTR GpuDriveLetter = nullptr;
-	LPWSTR GpuFormatParam = L"";
+	LPWSTR GpuFormatParam = L"exFAT";
 	LPWSTR GpuLabelParam = L"";
 	LPWSTR GpuDriveType = L"HD";
 	bool GpuDriveRemovable = false;
 	bool GpuMount = false;
 	bool HelpRequest = false;
+	bool TempFolder = false;
 
 	if (szArglist) {
 		for (int i = 0; i < nArgs; i++) {
@@ -100,6 +102,10 @@ int APIENTRY wWinMain(
 			{
 				nCmdShow = SW_HIDE;
 			}
+			else if (_wcsicmp(szArglist[i], L"--temp_folder") == 0)
+			{
+				TempFolder = true;
+			}
 			else if (_wcsicmp(szArglist[i], L"--help") == 0 ||
 				_wcsicmp(szArglist[i], L"-h") == 0 ||
 				_wcsicmp(szArglist[i], L"/h") == 0 ||
@@ -124,10 +130,15 @@ int APIENTRY wWinMain(
 		return -1;
 	}
 
+	wchar_t format2[256] = { 0 };
+	wcsncpy(format2, GpuFormatParam, sizeof(GpuFormatParam));
+	wchar_t formatParam[64] = { 0 };
+	_snwprintf_s(formatParam, sizeof(formatParam), L"/fs:%s /q", format2);
+
 	if (GpuMount) {
 		try
 		{
-			gui.Mount(GpuDevice, GpuSize, GpuDriveLetter, GpuFormatParam, GpuLabelParam, GpuDriveType, GpuDriveRemovable);
+			gui.Mount(GpuDevice, GpuSize, GpuDriveLetter, formatParam, GpuLabelParam, GpuDriveType, GpuDriveRemovable, TempFolder);
 		}
 		catch (const std::exception& ex)
 		{
