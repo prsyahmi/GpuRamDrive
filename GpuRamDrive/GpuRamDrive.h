@@ -75,7 +75,7 @@ public:
 	void SetDriveType(EGpuRamDriveType type);
 	void SetDriveType(const wchar_t* type);
 	void SetRemovable(bool removable);
-	void CreateRamDevice(cl_platform_id PlatformId, cl_device_id DeviceId, const std::wstring& ServiceName, size_t MemSize, const wchar_t* MountPoint, const std::wstring& FormatParam, const std::wstring& LabelParam);
+	void CreateRamDevice(cl_platform_id PlatformId, cl_device_id DeviceId, const std::wstring& ServiceName, size_t MemSize, const wchar_t* MountPoint, const std::wstring& FormatParam, const std::wstring& LabelParam, bool TempFolderParam);
 	void ImdiskMountDevice(const wchar_t* MountPoint);
 	void ImdiskUnmountDevice();
 	bool IsMounted();

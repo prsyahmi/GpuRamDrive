@@ -174,7 +174,7 @@ void GPURamDrive::SetRemovable(bool removable)
 	m_DriveRemovable = removable;
 }
 
-void GPURamDrive::CreateRamDevice(cl_platform_id PlatformId, cl_device_id DeviceId, const std::wstring& ServiceName, size_t MemSize, const wchar_t* MountPoint, const std::wstring& FormatParam, const std::wstring& LabelParam)
+void GPURamDrive::CreateRamDevice(cl_platform_id PlatformId, cl_device_id DeviceId, const std::wstring& ServiceName, size_t MemSize, const wchar_t* MountPoint, const std::wstring& FormatParam, const std::wstring& LabelParam, bool TempFolderParam)
 {
 	m_PlatformId = PlatformId;
 	m_DeviceId = DeviceId;
@@ -241,8 +241,18 @@ void GPURamDrive::CreateRamDevice(cl_platform_id PlatformId, cl_device_id Device
 
 		WaitForSingleObject(ProcInfo.hProcess, INFINITE);
 
+		// Set Volumen Label
 		if (LabelParam.length()) {
 			SetVolumeLabel(MountPoint, LabelParam.c_str());
+		}
+
+		// Create Temporal directory
+		if (TempFolderParam) {
+			wchar_t directoryName[64] = { 0 };
+			_snwprintf_s(directoryName, sizeof(directoryName), L"%s\\Temp", MountPoint);
+			CreateDirectory(directoryName, NULL);
+			_snwprintf_s(directoryName, sizeof(directoryName), L"%s\\Tmp", MountPoint);
+			CreateDirectory(directoryName, NULL);
 		}
 	}
 
