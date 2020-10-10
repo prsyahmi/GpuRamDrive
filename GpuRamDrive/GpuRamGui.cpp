@@ -137,13 +137,10 @@ void GpuRamGui::OnCreate()
 	hStatic = CreateWindow(L"STATIC", L"Drive Letter/Type:", WS_CHILD | WS_VISIBLE | SS_NOPREFIX, 10, 53, 140, 20, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(hStatic, WM_SETFONT, (WPARAM)FontNormal, TRUE);
 
-	hStatic = CreateWindow(L"STATIC", L"Memory Size (MB):", WS_CHILD | WS_VISIBLE | SS_NOPREFIX, 10, 93, 140, 20, m_hWnd, NULL, m_Instance, NULL);
+	hStatic = CreateWindow(L"STATIC", L"File System (MB):", WS_CHILD | WS_VISIBLE | SS_NOPREFIX, 10, 93, 140, 20, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(hStatic, WM_SETFONT, (WPARAM)FontNormal, TRUE);
 
-	hStatic = CreateWindow(L"STATIC", L"Volumen Label:", WS_CHILD | WS_VISIBLE | SS_NOPREFIX, 315, 93, 140, 20, m_hWnd, NULL, m_Instance, NULL);
-	SendMessage(hStatic, WM_SETFONT, (WPARAM)FontNormal, TRUE);
-
-	hStatic = CreateWindow(L"STATIC", L"Format Parameters:", WS_CHILD | WS_VISIBLE | SS_NOPREFIX, 10, 133, 140, 20, m_hWnd, NULL, m_Instance, NULL);
+	hStatic = CreateWindow(L"STATIC", L"Volumen Label:", WS_CHILD | WS_VISIBLE | SS_NOPREFIX, 10, 133, 140, 20, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(hStatic, WM_SETFONT, (WPARAM)FontNormal, TRUE);
 
 	m_CtlGpuList = CreateWindow(L"COMBOBOX", NULL, WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST, 150, 10, 150, 25, m_hWnd, NULL, m_Instance, NULL);
@@ -151,19 +148,21 @@ void GpuRamGui::OnCreate()
 
 	m_CtlDriveLetter = CreateWindow(L"COMBOBOX", NULL, WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST, 150, 50, 150, 25, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(m_CtlDriveLetter, WM_SETFONT, (WPARAM)FontNormal, TRUE);
+
 	m_CtlDriveType = CreateWindow(L"COMBOBOX", NULL, WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST, 315, 50, 150, 25, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(m_CtlDriveType, WM_SETFONT, (WPARAM)FontNormal, TRUE);
+
 	m_CtlDriveRemovable = CreateWindow(L"COMBOBOX", NULL, WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST, 480, 50, 182, 25, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(m_CtlDriveRemovable, WM_SETFONT, (WPARAM)FontNormal, TRUE);
 
-	m_CtlMemSize = CreateWindow(L"EDIT", L"1", WS_CHILD | WS_VISIBLE | WS_BORDER | WS_TABSTOP | ES_NUMBER, 150, 90, 150, 25, m_hWnd, NULL, m_Instance, NULL);
+	m_CtlFormatParam = CreateWindow(L"COMBOBOX", NULL, WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST, 150, 90, 150, 25, m_hWnd, NULL, m_Instance, NULL);
+	SendMessage(m_CtlFormatParam, WM_SETFONT, (WPARAM)FontNormal, TRUE);
+
+	m_CtlMemSize = CreateWindow(L"EDIT", L"1", WS_CHILD | WS_VISIBLE | WS_BORDER | WS_TABSTOP | ES_NUMBER, 315, 90, 150, 28, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(m_CtlMemSize, WM_SETFONT, (WPARAM)FontNormal, TRUE);
 
-	m_CtlLabel = CreateWindow(L"EDIT", L"RamDisk", WS_CHILD | WS_VISIBLE | WS_BORDER | WS_TABSTOP, 480, 90, 182, 25, m_hWnd, NULL, m_Instance, NULL);
+	m_CtlLabel = CreateWindow(L"EDIT", L"RamDisk", WS_CHILD | WS_VISIBLE | WS_BORDER | WS_TABSTOP, 150, 130, 150, 28, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(m_CtlLabel, WM_SETFONT, (WPARAM)FontNormal, TRUE);
-
-	m_CtlFormatParam = CreateWindow(L"EDIT", L"/fs:exfat /q", WS_CHILD | WS_VISIBLE | WS_BORDER | WS_TABSTOP, 150, 130, 150, 25, m_hWnd, NULL, m_Instance, NULL);
-	SendMessage(m_CtlFormatParam, WM_SETFONT, (WPARAM)FontNormal, TRUE);
 
 	m_CtlMountBtn = CreateWindow(L"BUTTON", L"Mount", WS_CHILD | WS_VISIBLE | WS_TABSTOP, 150, 190, 150, 40, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(m_CtlMountBtn, WM_SETFONT, (WPARAM)FontBold, TRUE);
@@ -178,6 +177,9 @@ void GpuRamGui::OnCreate()
 	ComboBox_AddString(m_CtlDriveType, L"Floppy Drive");
 	ComboBox_AddString(m_CtlDriveRemovable, L"Non-Removable");
 	ComboBox_AddString(m_CtlDriveRemovable, L"Removable");
+	ComboBox_AddString(m_CtlFormatParam, L"None");
+	ComboBox_AddString(m_CtlFormatParam, L"exFAT");
+	ComboBox_AddString(m_CtlFormatParam, L"NTFS");
 
 	int suggestedGpuList = -1;
 	int suggestedRamSize = 1;
@@ -212,6 +214,8 @@ void GpuRamGui::OnCreate()
 	ComboBox_SetCurSel(m_CtlDriveLetter, 'R' - 'A');
 	ComboBox_SetCurSel(m_CtlDriveType, 0);
 	ComboBox_SetCurSel(m_CtlDriveRemovable, 0);
+	ComboBox_SetCurSel(m_CtlFormatParam, 1);
+	
 
 	wcscpy_s(szTemp, L"1");
 	_itow_s(suggestedRamSize, szTemp, 10);
@@ -268,8 +272,14 @@ void GpuRamGui::OnMountClicked()
 		Edit_GetText(m_CtlMemSize, szTemp, sizeof(szTemp) / sizeof(wchar_t));
 		size_t memSize = (size_t)_wtoi64(szTemp) * 1024 * 1024;
 
-		Edit_GetText(m_CtlFormatParam, szTemp, sizeof(szTemp) / sizeof(wchar_t));
-		std::wstring formatParam = szTemp;
+		ComboBox_GetText(m_CtlFormatParam, szTemp, sizeof(szTemp) / sizeof(wchar_t));
+		std::wstring formatParam = L"";
+		if (wcscmp(szTemp, L"exFAT") == 0) {
+			formatParam = L"/fs:exfat /q";
+		}
+		else if (wcscmp(szTemp, L"ntfs") == 0) {
+			formatParam = L"/fs:ntfs /q";
+		}
 
 		Edit_GetText(m_CtlLabel, szTemp, sizeof(szTemp) / sizeof(wchar_t));
 		std::wstring labelParam = szTemp;
