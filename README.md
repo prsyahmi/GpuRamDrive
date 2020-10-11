@@ -1,7 +1,7 @@
 # GpuRamDrive
 Create a virtual drive backed by GPU RAM.
 
-![Screenshot](https://user-images.githubusercontent.com/1040494/29483246-db466f22-84d4-11e7-96e1-b546bc1cc6ce.png)
+![Screenshot](https://repository-images.githubusercontent.com/302840646/9930c200-0bf3-11eb-8161-3a2e8ec5be50)
 
 This application simply allocates a memory buffer inside GPU RAM and use it as virtual ram disk. The project is made possible by ImDisk and its proxy feature.
 
