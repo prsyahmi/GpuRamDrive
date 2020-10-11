@@ -30,6 +30,10 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include <imdisk/imdproxy.h>
 #include "GpuRamDrive.h"
 
+#if GPU_API == GPU_API_OPENCL
+#pragma comment (lib, "opencl.lib")
+#endif
+
 #if GPU_API == GPU_API_CUDA
 #pragma comment(lib, "cuda.lib")
 #endif
@@ -294,9 +298,11 @@ void GPURamDrive::Close()
 	if (m_ShmRespEvent) CloseHandle(m_ShmRespEvent);
 
 	if (m_pBuff) delete[] m_pBuff;
+#if GPU_API == GPU_API_OPENCL
 	if (m_GpuMem) clReleaseMemObject(m_GpuMem);
 	if (m_Queue) clReleaseCommandQueue(m_Queue);
 	if (m_Context) clReleaseContext(m_Context);
+#endif
 
 	m_ShmView = nullptr;
 	m_ShmHandle = NULL;
