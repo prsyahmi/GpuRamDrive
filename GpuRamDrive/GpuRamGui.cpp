@@ -105,16 +105,34 @@ void GpuRamGui::Mount(const std::wstring& device, size_t size, const std::wstrin
 
 	if (!found) throw std::runtime_error("Unable to find device specified");
 
-	m_RamDrive.SetDriveType(driveType.c_str());
-	m_RamDrive.SetRemovable(removable);
-	m_RamDrive.CreateRamDevice(vGpu[n].platform_id, vGpu[n].device_id, L"GpuRamDev", memSize, driveLetter.c_str(), formatParam, labelParam, tempFolderParam);
-
 	ComboBox_SetCurSel(m_CtlGpuList, n);
 	ComboBox_SetCurSel(m_CtlDriveLetter, (driveLetter[0] <= 'Z' ? driveLetter[0] - 'A' : driveLetter[0] - 'a'));
+	ComboBox_SetCurSel(m_CtlDriveRemovable, (int)removable);
+	Edit_SetText(m_CtlLabel, labelParam.c_str());
+	Button_SetCheck(m_CtlTempFolder, tempFolderParam);
+
+	ComboBox_SelectString(m_CtlFormatParam, -1, formatParam.c_str());
+	for (int i = 0; i < ComboBox_GetCount(m_CtlFormatParam); i++) {
+		wchar_t szItemName[64];
+		ComboBox_GetLBText(m_CtlFormatParam, i, szItemName);
+		_wcsupr(szItemName);
+
+		wchar_t* szformatParam = _wcsdup(formatParam.c_str());
+		_wcsupr(szformatParam);
+
+		if (wcsstr(szformatParam, szItemName) != 0) {
+			ComboBox_SetCurSel(m_CtlFormatParam, i);
+			break;
+		}
+	}
 
 	wchar_t szTemp[64];
 	_itow_s((int)size, szTemp, 10);
 	Edit_SetText(m_CtlMemSize, szTemp);
+
+	m_RamDrive.SetDriveType(driveType.c_str());
+	m_RamDrive.SetRemovable(removable);
+	m_RamDrive.CreateRamDevice(vGpu[n].platform_id, vGpu[n].device_id, L"GpuRamDev", memSize, driveLetter.c_str(), formatParam, labelParam, tempFolderParam);
 }
 
 void GpuRamGui::RestoreWindow()
@@ -190,10 +208,9 @@ void GpuRamGui::OnCreate()
 	{
 		m_RamDrive.RefreshGPUInfo();
 		auto v = m_RamDrive.GetGpuDevices();
-		int index = -1;
-		for (auto it = v.begin(); it != v.end(); it++)
+		int index = 0;
+		for (auto it = v.begin(); it != v.end(); it++, index++)
 		{
-			index++;
 			ComboBox_AddString(m_CtlGpuList, ToWide(it->name + " (" + std::to_string(it->memsize / (1024 * 1024)) + " MB)").c_str());
 			if (suggestedGpuList == -1) {
 				suggestedRamSize = (int)(it->memsize * 0.8 / 1024 / 1024);
