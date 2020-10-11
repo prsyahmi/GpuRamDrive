@@ -30,7 +30,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "GpuRamGui.h"
 
 const wchar_t GPU_HELP_STRING[] = L"Usage:\n"
-"  GpuRamDrive.exe --device CUDA --size 256 --mount j: --format exfat --label RamDrive\n"
+"  GpuRamDrive.exe --device CUDA --size 256 --mount j: --format exfat --label RamDrive --temp_folder\n"
 "\n"
 "Options:\n"
 "  --device <Device Name>   Search string for GPU device\n"

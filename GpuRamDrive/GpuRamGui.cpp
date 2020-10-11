@@ -115,10 +115,10 @@ void GpuRamGui::Mount(const std::wstring& device, size_t size, const std::wstrin
 	for (int i = 0; i < ComboBox_GetCount(m_CtlFormatParam); i++) {
 		wchar_t szItemName[64];
 		ComboBox_GetLBText(m_CtlFormatParam, i, szItemName);
-		_wcsupr(szItemName);
+		_wcsupr_s(szItemName, sizeof(szItemName));
 
 		wchar_t* szformatParam = _wcsdup(formatParam.c_str());
-		_wcsupr(szformatParam);
+		_wcsupr_s(szformatParam, sizeof(szformatParam));
 
 		if (wcsstr(szformatParam, szItemName) != 0) {
 			ComboBox_SetCurSel(m_CtlFormatParam, i);

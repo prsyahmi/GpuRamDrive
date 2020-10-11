@@ -25,5 +25,4 @@
 #include <cl\cl.h>
 
 #pragma comment (lib, "imdisk.lib")
-#pragma comment (lib, "opencl.lib")
 #pragma comment(lib, "comctl32.lib")
