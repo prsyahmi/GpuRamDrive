@@ -130,10 +130,8 @@ int APIENTRY wWinMain(
 		return -1;
 	}
 
-	wchar_t format2[256] = { 0 };
-	wcsncpy(format2, GpuFormatParam, sizeof(GpuFormatParam));
 	wchar_t formatParam[64] = { 0 };
-	_snwprintf_s(formatParam, sizeof(formatParam), L"/fs:%s /q", format2);
+	_snwprintf_s(formatParam, sizeof(formatParam), L"/fs:%s /q", GpuFormatParam);
 
 	if (GpuMount) {
 		try
