@@ -182,7 +182,7 @@ void GpuRamGui::OnCreate()
 	m_CtlLabel = CreateWindow(L"EDIT", L"RamDisk", WS_CHILD | WS_VISIBLE | WS_BORDER | WS_TABSTOP, 150, 130, 150, 28, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(m_CtlLabel, WM_SETFONT, (WPARAM)FontNormal, TRUE);
 
-	m_CtlTempFolder = CreateWindow(L"BUTTON", L"Create TEMP Folder", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_CHECKBOX, 315, 130, 154, 25, m_hWnd, NULL, m_Instance, NULL);
+	m_CtlTempFolder = CreateWindow(L"BUTTON", L"Create TEMP Folder", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_CHECKBOX, 315, 132, 150, 25, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(m_CtlTempFolder, WM_SETFONT, (WPARAM)FontNormal, TRUE);
 
 	m_CtlMountBtn = CreateWindow(L"BUTTON", L"Mount", WS_CHILD | WS_VISIBLE | WS_TABSTOP, 150, 190, 150, 40, m_hWnd, NULL, m_Instance, NULL);
