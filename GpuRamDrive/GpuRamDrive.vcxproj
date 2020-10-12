@@ -256,7 +256,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>GPU_API=0;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>GPU_API=0;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
@@ -388,6 +388,7 @@
     <ClInclude Include="GpuRamDrive.h" />
     <ClInclude Include="GpuRamGui.h" />
     <ClInclude Include="GpuRamTrayIcon.h" />
+    <ClInclude Include="Regkey.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
@@ -397,6 +398,7 @@
     <ClCompile Include="GpuRamDrive.cpp" />
     <ClCompile Include="GpuRamGui.cpp" />
     <ClCompile Include="GpuRamTrayIcon.cpp" />
+    <ClCompile Include="Regkey.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug-OpenCL|Win32'">Create</PrecompiledHeader>
