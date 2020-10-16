@@ -548,7 +548,7 @@ void GPURamDrive::SaveTempEnvironmentVariable()
 		obKey.SetKeyValue(L"Environment", L"TMP_GPURAMDRIVE", tmpEnvironmentVariable, (DWORD)wcslen(tmpEnvironmentVariable) * sizeof(wchar_t), true, false, HKEY_CURRENT_USER);
 	}
 
-	DWORD dwSize = obKey.GetSizeOfValue(_T("Environment"), L"TEMP_BAK", HKEY_CURRENT_USER);
+	DWORD dwSize = obKey.GetSizeOfValue(_T("Environment"), L"TEMP_GPURAMDRIVE", HKEY_CURRENT_USER);
 	DWORD iTotalLength = dwSize + 1;
 	memset(tempEnvironmentVariable, 0, iTotalLength);
 	memset(tmpEnvironmentVariable, 0, iTotalLength);
