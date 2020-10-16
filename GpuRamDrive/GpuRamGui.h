@@ -20,7 +20,10 @@ private:
 	HWND m_CtlLabel;
 	HWND m_CtlFormatParam;
 	HWND m_CtlTempFolder;
+	HWND m_CtlStartOnWindows;
 	bool m_UpdateState;
+
+	LPCWSTR wszTaskJobName;
 
 public:
 	GpuRamGui();
