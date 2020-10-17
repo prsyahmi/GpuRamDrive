@@ -23,6 +23,7 @@ private:
 	HWND m_CtlStartOnWindows;
 	bool m_UpdateState;
 
+	LPCWSTR wszAppName;
 	LPCWSTR wszTaskJobName;
 
 public:

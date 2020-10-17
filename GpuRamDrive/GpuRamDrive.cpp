@@ -41,7 +41,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 
 GPURamDrive::GPURamDrive()
-	: m_DriveType(eGpuRamDriveType_HD)
+	: m_DriveType(EGpuRamDriveType::HD)
 	, m_DriveRemovable(false)
 	, m_MemSize(0)
 	, m_Context(nullptr)
@@ -163,13 +163,13 @@ void GPURamDrive::SetDriveType(const wchar_t* type)
 	if (type == nullptr) return;
 
 	if (_wcsicmp(type, L"HD") == 0) {
-		m_DriveType = eGpuRamDriveType_HD;
+		m_DriveType = EGpuRamDriveType::HD;
 	} else if (_wcsicmp(type, L"FD") == 0) {
-		m_DriveType = eGpuRamDriveType_FD;
+		m_DriveType = EGpuRamDriveType::FD;
 	} else if (_wcsicmp(type, L"CD") == 0) {
-		m_DriveType = eGpuRamDriveType_CD;
+		m_DriveType = EGpuRamDriveType::CD;
 	} else if (_wcsicmp(type, L"RAW") == 0) {
-		m_DriveType = eGpuRamDriveType_RAW;
+		m_DriveType = EGpuRamDriveType::RAW;
 	}
 }
 
@@ -244,6 +244,8 @@ void GPURamDrive::CreateRamDevice(cl_platform_id PlatformId, cl_device_id Device
 			&ProcInfo);
 
 		WaitForSingleObject(ProcInfo.hProcess, INFINITE);
+		CloseHandle(ProcInfo.hProcess);
+		CloseHandle(ProcInfo.hThread);
 
 		// Set Volumen Label
 		if (LabelParam.length()) {
