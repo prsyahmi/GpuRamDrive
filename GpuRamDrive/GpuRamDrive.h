@@ -17,18 +17,18 @@
 
 struct TGPUDevice
 {
-	cl_platform_id platform_id;
-	cl_device_id device_id;
-	cl_ulong memsize;
+	cl_platform_id platform_id{};
+	cl_device_id device_id{};
+	cl_ulong memsize = 0;
 	std::string name;
 };
 
-enum EGpuRamDriveType
+enum class EGpuRamDriveType
 {
-	eGpuRamDriveType_HD = IMDISK_DEVICE_TYPE_HD,
-	eGpuRamDriveType_FD = IMDISK_DEVICE_TYPE_FD,
-	eGpuRamDriveType_CD = IMDISK_DEVICE_TYPE_CD,
-	eGpuRamDriveType_RAW = IMDISK_DEVICE_TYPE_RAW,
+	HD = IMDISK_DEVICE_TYPE_HD,
+	FD = IMDISK_DEVICE_TYPE_FD,
+	CD = IMDISK_DEVICE_TYPE_CD,
+	RAW = IMDISK_DEVICE_TYPE_RAW,
 };
 
 class GPURamDrive
@@ -62,8 +62,8 @@ private:
 	void* m_BufStart;
 
 	xfc::RegKey obKey;
-	wchar_t tempEnvironmentVariable[1024];
-	wchar_t tmpEnvironmentVariable[1024];
+	wchar_t tempEnvironmentVariable[1024] = { 0 };
+	wchar_t tmpEnvironmentVariable[1024] = { 0 };
 
 #if GPU_API == GPU_API_CUDA
 	CUdeviceptr m_cuDevPtr;

@@ -46,11 +46,26 @@ std::wstring ToWide(const std::string& str)
 
 
 GpuRamGui::GpuRamGui()
+	: m_Icon(NULL)
+	, m_Instance(NULL)
+	, m_hWnd(NULL)
+	, m_CtlGpuList(NULL)
+	, m_CtlMountBtn(NULL)
+	, m_CtlMemSize(NULL)
+	, m_CtlDriveLetter(NULL)
+	, m_CtlDriveType(NULL)
+	, m_CtlDriveRemovable(NULL)
+	, m_CtlLabel(NULL)
+	, m_CtlFormatParam(NULL)
+	, m_CtlTempFolder(NULL)
+	, m_CtlStartOnWindows(NULL)
+	, m_UpdateState(false)
+	, wszAppName(L"GpuRamDrive")
+	, wszTaskJobName(L"GPURAMDRIVE Task")
 {
 	INITCOMMONCONTROLSEX c;
 	c.dwSize = sizeof(c);
 	c.dwICC = 0;
-	wszTaskJobName = L"GPURAMDISK Task";
 
 	InitCommonControlsEx(&c);
 }
@@ -261,7 +276,7 @@ void GpuRamGui::OnCreate()
 
 		if (m_RamDrive.IsMounted()) {
 			m_Tray.CreateIcon(m_hWnd, m_Icon, SWM_TRAYINTERACTION);
-			m_Tray.SetTooltip(L"GpuRamDrive");
+			m_Tray.SetTooltip(wszAppName);
 		} else {
 			m_Tray.Destroy();
 		}
@@ -316,7 +331,7 @@ void GpuRamGui::OnMountClicked()
 
 		bool tempFolderParam = Button_GetCheck(m_CtlTempFolder);
 
-		EGpuRamDriveType driveType = ComboBox_GetCurSel(m_CtlDriveType) == 0 ? eGpuRamDriveType_HD : eGpuRamDriveType_FD;
+		EGpuRamDriveType driveType = ComboBox_GetCurSel(m_CtlDriveType) == 0 ? EGpuRamDriveType::HD : EGpuRamDriveType::FD;
 		bool driveRemovable = ComboBox_GetCurSel(m_CtlDriveRemovable) == 0 ? false : true;
 
 		if (memSize >= vGpu[n].memsize) {
@@ -438,6 +453,17 @@ LRESULT CALLBACK GpuRamGui::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 			}
 			break;
 		}
+		case WM_CLOSE:
+			if (_this->m_RamDrive.IsMounted()) {
+				if (MessageBox(hWnd, L"The unit is mounted, do you really want to exit??", _this->wszAppName, MB_OKCANCEL) == IDOK)
+				{
+					DestroyWindow(hWnd);
+				}
+			}
+			else {
+					DestroyWindow(hWnd);
+			}
+			break;
 
 		case WM_ENDSESSION:
 			if (_this) _this->OnEndSession();
@@ -467,12 +493,12 @@ LRESULT CALLBACK GpuRamGui::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 				else if ((HANDLE)lParam == _this->m_CtlGpuList) {
 					if (HIWORD(wParam) == CBN_SELCHANGE) {
 
-						int ItemIndex = SendMessage((HWND)lParam, (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
+						LRESULT ItemIndex = SendMessage((HWND)lParam, (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
 
 						TGPUDevice it = _this->m_RamDrive.GetGpuDevices().at(ItemIndex);
 						int suggestedRamSize = (int)(it.memsize * 0.8 / 1024 / 1024);
 
-						wchar_t szTemp[64];
+						wchar_t szTemp[64] = { 0 };
 						wcscpy_s(szTemp, L"1");
 						_itow_s(suggestedRamSize, szTemp, 10);
 						Edit_SetText(_this->m_CtlMemSize, szTemp);
@@ -510,7 +536,7 @@ LRESULT CALLBACK GpuRamGui::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 
 						bool tempFolderParam = Button_GetCheck(_this->m_CtlTempFolder);
 
-						EGpuRamDriveType driveType = ComboBox_GetCurSel(_this->m_CtlDriveType) == 0 ? eGpuRamDriveType_HD : eGpuRamDriveType_FD;
+						EGpuRamDriveType driveType = ComboBox_GetCurSel(_this->m_CtlDriveType) == 0 ? EGpuRamDriveType::HD : EGpuRamDriveType::FD;
 						bool driveRemovable = ComboBox_GetCurSel(_this->m_CtlDriveRemovable) == 0 ? false : true;
 
 						wchar_t szMountPoint[10] = { 0 };
