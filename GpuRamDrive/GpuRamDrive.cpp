@@ -71,6 +71,8 @@ GPURamDrive::~GPURamDrive()
 
 void GPURamDrive::RefreshGPUInfo()
 {
+	m_Devices.clear();
+
 #if GPU_API == GPU_API_HOSTMEM
 	TGPUDevice GpuDevices;
 	MEMORYSTATUSEX memStatus = { 0 };
@@ -81,6 +83,7 @@ void GPURamDrive::RefreshGPUInfo()
 	GpuDevices.platform_id = 0;
 	GpuDevices.device_id = 0;
 	GpuDevices.name = "Host Memory";
+	m_Devices.push_back(GpuDevices);
 	m_Devices.push_back(GpuDevices);
 #elif GPU_API == GPU_API_CUDA
 	CUresult res;

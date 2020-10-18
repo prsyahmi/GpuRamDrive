@@ -55,13 +55,14 @@ GpuRamGui::GpuRamGui()
 	, m_CtlDriveLetter(NULL)
 	, m_CtlDriveType(NULL)
 	, m_CtlDriveRemovable(NULL)
-	, m_CtlLabel(NULL)
-	, m_CtlFormatParam(NULL)
+	, m_CtlDriveLabel(NULL)
+	, m_CtlDriveFormat(NULL)
 	, m_CtlTempFolder(NULL)
 	, m_CtlStartOnWindows(NULL)
 	, m_UpdateState(false)
 	, wszAppName(L"GpuRamDrive")
 	, wszTaskJobName(L"GPURAMDRIVE Task")
+	, config(wszAppName)
 {
 	INITCOMMONCONTROLSEX c;
 	c.dwSize = sizeof(c);
@@ -106,51 +107,12 @@ int GpuRamGui::Loop()
 	return (int)msg.wParam;
 }
 
-void GpuRamGui::Mount(const std::wstring& device, size_t size, const std::wstring& driveLetter, const std::wstring& formatParam, const std::wstring& labelParam, const std::wstring& driveType, bool removable, bool tempFolderParam)
+void GpuRamGui::Mount(DWORD gpu)
 {
-	bool found = false;
-	int n = 0;
-	size_t memSize = size * 1024 * 1024;
-
-	auto vGpu = m_RamDrive.GetGpuDevices();
-	for (auto it = vGpu.begin(); it != vGpu.end(); it++, n++) {
-		if (ToWide(it->name).find(device) != std::string::npos) {
-			found = true;
-			break;
-		}
-	}
-
-	if (!found) throw std::runtime_error("Unable to find device specified");
-
-	ComboBox_SetCurSel(m_CtlGpuList, n);
-	ComboBox_SetCurSel(m_CtlDriveLetter, (driveLetter[0] <= 'Z' ? driveLetter[0] - 'A' : driveLetter[0] - 'a'));
-	ComboBox_SetCurSel(m_CtlDriveRemovable, (int)removable);
-	Edit_SetText(m_CtlLabel, labelParam.c_str());
-	Button_SetCheck(m_CtlTempFolder, tempFolderParam);
-
-	ComboBox_SelectString(m_CtlFormatParam, -1, formatParam.c_str());
-	for (int i = 0; i < ComboBox_GetCount(m_CtlFormatParam); i++) {
-		wchar_t szItemName[128] = { 0 };
-		ComboBox_GetLBText(m_CtlFormatParam, i, szItemName);
-		wchar_t* wszFormatItem = _wcsdup(szItemName);
-		_wcsupr_s(wszFormatItem, wcslen(wszFormatItem) + 1);
-
-		wchar_t* szformatParam = _wcsdup(formatParam.c_str());
-		_wcsupr_s(szformatParam, wcslen(szformatParam) + 1);
-
-		if (wcsstr(szformatParam, szItemName) != 0) {
-			ComboBox_SetCurSel(m_CtlFormatParam, i);
-			break;
-		}
-	}
-
-	wchar_t szTemp[64];
-	_itow_s((int)size, szTemp, 10);
-	Edit_SetText(m_CtlMemSize, szTemp);
-
-	m_RamDrive.SetDriveType(driveType.c_str());
-	m_RamDrive.SetRemovable(removable);
-	m_RamDrive.CreateRamDevice(vGpu[n].platform_id, vGpu[n].device_id, L"GpuRamDev", memSize, driveLetter.c_str(), formatParam, labelParam, tempFolderParam);
+	m_RamDrive.RefreshGPUInfo();
+	if (gpu >= m_RamDrive.GetGpuDevices().size()) throw std::runtime_error("Unable to find device specified");
+	restoreGuiParams(gpu, 256);
+	OnMountClicked();
 }
 
 void GpuRamGui::RestoreWindow()
@@ -191,14 +153,14 @@ void GpuRamGui::OnCreate()
 	m_CtlDriveRemovable = CreateWindow(L"COMBOBOX", NULL, WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST, 480, 50, 182, 25, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(m_CtlDriveRemovable, WM_SETFONT, (WPARAM)FontNormal, TRUE);
 
-	m_CtlFormatParam = CreateWindow(L"COMBOBOX", NULL, WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST, 150, 90, 150, 25, m_hWnd, NULL, m_Instance, NULL);
-	SendMessage(m_CtlFormatParam, WM_SETFONT, (WPARAM)FontNormal, TRUE);
+	m_CtlDriveFormat = CreateWindow(L"COMBOBOX", NULL, WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST, 150, 90, 150, 25, m_hWnd, NULL, m_Instance, NULL);
+	SendMessage(m_CtlDriveFormat, WM_SETFONT, (WPARAM)FontNormal, TRUE);
 
 	m_CtlMemSize = CreateWindow(L"EDIT", L"1", WS_CHILD | WS_VISIBLE | WS_BORDER | WS_TABSTOP | ES_NUMBER, 315, 90, 150, 28, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(m_CtlMemSize, WM_SETFONT, (WPARAM)FontNormal, TRUE);
 
-	m_CtlLabel = CreateWindow(L"EDIT", L"GpuDisk", WS_CHILD | WS_VISIBLE | WS_BORDER | WS_TABSTOP, 150, 130, 150, 28, m_hWnd, NULL, m_Instance, NULL);
-	SendMessage(m_CtlLabel, WM_SETFONT, (WPARAM)FontNormal, TRUE);
+	m_CtlDriveLabel = CreateWindow(L"EDIT", L"", WS_CHILD | WS_VISIBLE | WS_BORDER | WS_TABSTOP, 150, 130, 150, 28, m_hWnd, NULL, m_Instance, NULL);
+	SendMessage(m_CtlDriveLabel, WM_SETFONT, (WPARAM)FontNormal, TRUE);
 
 	m_CtlTempFolder = CreateWindow(L"BUTTON", L"Create TEMP Folder", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_CHECKBOX, 315, 132, 154, 25, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(m_CtlTempFolder, WM_SETFONT, (WPARAM)FontNormal, TRUE);
@@ -219,12 +181,11 @@ void GpuRamGui::OnCreate()
 	ComboBox_AddString(m_CtlDriveType, L"Floppy Drive");
 	ComboBox_AddString(m_CtlDriveRemovable, L"Non-Removable");
 	ComboBox_AddString(m_CtlDriveRemovable, L"Removable");
-	ComboBox_AddString(m_CtlFormatParam, L"FAT32");
-	ComboBox_AddString(m_CtlFormatParam, L"exFAT");
-	ComboBox_AddString(m_CtlFormatParam, L"NTFS");
+	ComboBox_AddString(m_CtlDriveFormat, L"FAT32");
+	ComboBox_AddString(m_CtlDriveFormat, L"exFAT");
+	ComboBox_AddString(m_CtlDriveFormat, L"NTFS");
 
-	int suggestedGpuList = -1;
-	int suggestedRamSize = 1;
+	int suggestedRamSize = -1;
 	try
 	{
 		m_RamDrive.RefreshGPUInfo();
@@ -232,22 +193,19 @@ void GpuRamGui::OnCreate()
 		int index = 0;
 		for (auto it = v.begin(); it != v.end(); it++, index++)
 		{
-			ComboBox_AddString(m_CtlGpuList, ToWide(it->name + " (" + std::to_string(it->memsize / (1024 * 1024)) + " MB)").c_str());
-			if (suggestedGpuList == -1) {
+			ComboBox_AddString(m_CtlGpuList, ToWide(std::to_string(index) + ": " + it->name + " (" + std::to_string(it->memsize / (1024 * 1024)) + " MB)").c_str());
+			if (suggestedRamSize == -1) {
 #if GPU_API == GPU_API_HOSTMEM
 				suggestedRamSize = 256;
 #else
 				suggestedRamSize = (int)((it->memsize / 1024 / 1024) - 1024);
 #endif
 			}
-
-			if (it->name.find("GeForce") != std::string::npos || it->name.find("AMD") != std::string::npos) {
-				suggestedRamSize = (int)((it->memsize / 1024 / 1024) - 1024);
-				suggestedGpuList = index;
-			}
 		}
-		if (suggestedGpuList == -1) {
-			suggestedGpuList = ComboBox_GetCount(m_CtlGpuList) - 1;
+
+		if (config.getGpuList() >= index)
+		{
+			config.setGpuList(0);
 		}
 	}
 	catch (const std::exception& ex)
@@ -255,33 +213,62 @@ void GpuRamGui::OnCreate()
 		ComboBox_AddString(m_CtlGpuList, ToWide(ex.what()).c_str());
 	}
 
-	ComboBox_SetCurSel(m_CtlGpuList, suggestedGpuList);
-	ComboBox_SetCurSel(m_CtlDriveLetter, 'R' - 'A');
-	ComboBox_SetCurSel(m_CtlDriveType, 0);
-	ComboBox_SetCurSel(m_CtlDriveRemovable, 0);
-	ComboBox_SetCurSel(m_CtlFormatParam, 1);
-	Button_SetCheck(m_CtlTempFolder, TRUE);
+	restoreGuiParams(config.getGpuList(), suggestedRamSize);
 
-	TaskManager taskManager;
-	bool exists = taskManager.ExistTaskJob(wszTaskJobName);
-	Button_SetCheck(m_CtlStartOnWindows, exists);
-
-	wcscpy_s(szTemp, L"1");
-	_itow_s(suggestedRamSize, szTemp, 10);
-	Edit_SetText(m_CtlMemSize, szTemp);
+	m_Tray.CreateIcon(m_hWnd, m_Icon, SWM_TRAYINTERACTION);
+	m_Tray.SetTooltip(wszAppName, config.getGpuList());
 
 	m_RamDrive.SetStateChangeCallback([&]() {
 		m_UpdateState = true;
 		InvalidateRect(m_hWnd, NULL, FALSE);
-
-		if (m_RamDrive.IsMounted()) {
-			m_Tray.CreateIcon(m_hWnd, m_Icon, SWM_TRAYINTERACTION);
-			m_Tray.SetTooltip(wszAppName);
-		} else {
-			m_Tray.Destroy();
-		}
 	});
 	m_UpdateState = true;
+}
+
+void GpuRamGui::restoreGuiParams(DWORD gpu, DWORD suggestedRamSize)
+{
+	config.setGpuList(gpu);
+	m_Tray.SetTooltip(wszAppName, gpu);
+
+	ComboBox_SetCurSel(m_CtlGpuList, gpu);
+	ComboBox_SetCurSel(m_CtlDriveLetter, config.getDriveLetter());
+	ComboBox_SetCurSel(m_CtlDriveType, config.getDriveType());
+	ComboBox_SetCurSel(m_CtlDriveRemovable, config.getDriveRemovable());
+	ComboBox_SetCurSel(m_CtlDriveFormat, config.getDriveFormat());
+	Button_SetCheck(m_CtlTempFolder, config.getTempFolder());
+	Button_SetCheck(m_CtlStartOnWindows, config.getStartOnWindows());
+
+	wchar_t szTemp[1024] = {};
+	wcscpy_s(szTemp, L"1");
+	if (config.getMemSize() > 0) {
+		_itow_s(config.getMemSize(), szTemp, 10);
+	}
+	else {
+		_itow_s(suggestedRamSize, szTemp, 10);
+	}
+	Edit_SetText(m_CtlMemSize, szTemp);
+
+	config.getDriveLabel(szTemp);
+	Edit_SetText(m_CtlDriveLabel, szTemp);
+}
+
+void GpuRamGui::saveGuiParams(DWORD gpu)
+{
+	config.setGpuList(gpu);
+	config.setDriveLetter(ComboBox_GetCurSel(m_CtlDriveLetter));
+	config.setDriveType(ComboBox_GetCurSel(m_CtlDriveType));
+	config.setDriveRemovable(ComboBox_GetCurSel(m_CtlDriveRemovable));
+	config.setDriveFormat(ComboBox_GetCurSel(m_CtlDriveFormat));
+	config.setMemSize(ComboBox_GetCurSel(m_CtlDriveFormat));
+	config.setTempFolder(Button_GetCheck(m_CtlTempFolder));
+	config.setStartOnWindows(Button_GetCheck(m_CtlStartOnWindows));
+
+	wchar_t szTemp[64] = { 0 };
+	Edit_GetText(m_CtlMemSize, szTemp, sizeof(szTemp) / sizeof(wchar_t));
+	config.setMemSize((size_t)_wtoi64(szTemp));
+
+	Edit_GetText(m_CtlDriveLabel, szTemp, sizeof(szTemp) / sizeof(wchar_t));
+	config.setDriveLabel(szTemp);
 }
 
 void GpuRamGui::OnDestroy()
@@ -316,17 +303,19 @@ void GpuRamGui::OnMountClicked()
 			return;
 		}
 
+		saveGuiParams(ComboBox_GetCurSel(m_CtlGpuList));
+
 		wchar_t szTemp[64] = { 0 };
 
 		Edit_GetText(m_CtlMemSize, szTemp, sizeof(szTemp) / sizeof(wchar_t));
 		size_t memSize = (size_t)_wtoi64(szTemp) * 1024 * 1024;
 
-		ComboBox_GetText(m_CtlFormatParam, szTemp, sizeof(szTemp) / sizeof(wchar_t));
+		ComboBox_GetText(m_CtlDriveFormat, szTemp, sizeof(szTemp) / sizeof(wchar_t));
 		wchar_t format[64] = { 0 };
 		_snwprintf_s(format, sizeof(format), L"/fs:%s /q", szTemp);
 		std::wstring formatParam = format;
 
-		Edit_GetText(m_CtlLabel, szTemp, sizeof(szTemp) / sizeof(wchar_t));
+		Edit_GetText(m_CtlDriveLabel, szTemp, sizeof(szTemp) / sizeof(wchar_t));
 		std::wstring labelParam = szTemp;
 
 		bool tempFolderParam = Button_GetCheck(m_CtlTempFolder);
@@ -388,8 +377,8 @@ void GpuRamGui::UpdateState()
 		EnableWindow(m_CtlDriveRemovable, FALSE);
 		EnableWindow(m_CtlGpuList, FALSE);
 		EnableWindow(m_CtlMemSize, FALSE);
-		EnableWindow(m_CtlLabel, FALSE);
-		EnableWindow(m_CtlFormatParam, FALSE);
+		EnableWindow(m_CtlDriveLabel, FALSE);
+		EnableWindow(m_CtlDriveFormat, FALSE);
 		EnableWindow(m_CtlTempFolder, FALSE);
 		EnableWindow(m_CtlStartOnWindows, FALSE);
 		Edit_SetText(m_CtlMountBtn, L"Unmount");
@@ -401,8 +390,8 @@ void GpuRamGui::UpdateState()
 		EnableWindow(m_CtlDriveRemovable, TRUE);
 		EnableWindow(m_CtlGpuList, TRUE);
 		EnableWindow(m_CtlMemSize, TRUE);
-		EnableWindow(m_CtlLabel, TRUE);
-		EnableWindow(m_CtlFormatParam, TRUE);
+		EnableWindow(m_CtlDriveLabel, TRUE);
+		EnableWindow(m_CtlDriveFormat, TRUE);
 		EnableWindow(m_CtlTempFolder, TRUE);
 		EnableWindow(m_CtlStartOnWindows, TRUE);
 		Edit_SetText(m_CtlMountBtn, L"Mount");
@@ -455,7 +444,7 @@ LRESULT CALLBACK GpuRamGui::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 		}
 		case WM_CLOSE:
 			if (_this->m_RamDrive.IsMounted()) {
-				if (MessageBox(hWnd, L"The unit is mounted, do you really want to exit??", _this->wszAppName, MB_OKCANCEL) == IDOK)
+				if (MessageBox(hWnd, L"The drive is mounted, do you really want to exit?", _this->wszAppName, MB_OKCANCEL) == IDOK)
 				{
 					DestroyWindow(hWnd);
 				}
@@ -482,9 +471,32 @@ LRESULT CALLBACK GpuRamGui::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 			return DefWindowProc(hWnd, message, wParam, lParam);
 			break;
 
+		case WM_SYSCOMMAND:
+			if ((wParam & 0xFFF0) == SC_MINIMIZE)
+			{
+				if (_this)
+				{
+					_this->OnTrayInteraction(WM_LBUTTONUP);
+				}
+				break;
+			}
+			else
+			{
+				return DefWindowProc(hWnd, message, wParam, lParam);
+			}
+
 		case WM_COMMAND:
 		{
 			if (_this) {
+				if ((HANDLE)lParam == _this->m_CtlGpuList ||
+					(HANDLE)lParam == _this->m_CtlDriveFormat ||
+					(HANDLE)lParam == _this->m_CtlDriveRemovable ||
+					(HANDLE)lParam == _this->m_CtlDriveType) {
+					if (HIWORD(wParam) == CBN_SELCHANGE) {
+						_this->saveGuiParams(_this->config.getGpuList());
+					}
+				}
+
 				if ((HANDLE)lParam == _this->m_CtlMountBtn) {
 					EnableWindow(_this->m_CtlMountBtn, FALSE);
 					_this->OnMountClicked();
@@ -492,106 +504,43 @@ LRESULT CALLBACK GpuRamGui::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 				}
 				else if ((HANDLE)lParam == _this->m_CtlGpuList) {
 					if (HIWORD(wParam) == CBN_SELCHANGE) {
+						LRESULT itemIndex = SendMessage((HWND)lParam, (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
 
-						LRESULT ItemIndex = SendMessage((HWND)lParam, (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
-
-						TGPUDevice it = _this->m_RamDrive.GetGpuDevices().at(ItemIndex);
-						int suggestedRamSize = (int)(it.memsize * 0.8 / 1024 / 1024);
-
-						wchar_t szTemp[64] = { 0 };
-						wcscpy_s(szTemp, L"1");
-						_itow_s(suggestedRamSize, szTemp, 10);
-						Edit_SetText(_this->m_CtlMemSize, szTemp);
+						TGPUDevice it = _this->m_RamDrive.GetGpuDevices().at(itemIndex);
+#if GPU_API == GPU_API_HOSTMEM
+						int suggestedRamSize = 256;
+#else
+						int suggestedRamSize = (int)((it.memsize / 1024 / 1024) - 1024);
+#endif
+						_this->restoreGuiParams(itemIndex, suggestedRamSize);
 					}
 				}
 				else if ((HANDLE)lParam == _this->m_CtlTempFolder) {
 					BOOL checked = Button_GetCheck(_this->m_CtlTempFolder);
 					Button_SetCheck(_this->m_CtlTempFolder, !checked);
+					_this->saveGuiParams(_this->config.getGpuList());
 				}
 				else if ((HANDLE)lParam == _this->m_CtlStartOnWindows) {
 					BOOL checked = Button_GetCheck(_this->m_CtlStartOnWindows);
 					Button_SetCheck(_this->m_CtlStartOnWindows, !checked);
+					_this->saveGuiParams(_this->config.getGpuList());
 
 					TaskManager taskManager;
 
+					wchar_t taskJobName[MAX_PATH] = {};
+					_snwprintf_s(taskJobName, sizeof(taskJobName), L"%s_%d", _this->wszTaskJobName, _this->config.getGpuList());
 					if (!checked) {
-						wchar_t nPath[MAX_PATH];
+						wchar_t nPath[MAX_PATH] = {};
+						wchar_t nArguments[MAX_PATH] = {};
+
 						GetModuleFileName(NULL, nPath, MAX_PATH);
-						wchar_t nArguments[MAX_PATH * 4] = { 0 };
+						_snwprintf_s(nArguments, sizeof(nArguments), L"--device %d --hide", _this->config.getGpuList());
 
-						wchar_t szTemp[64] = { 0 };
-						wchar_t szDevice[64] = { 0 };
-						ComboBox_GetText(_this->m_CtlGpuList, szTemp, sizeof(szTemp) / sizeof(wchar_t));
-						size_t pos = std::wstring(szTemp).find_first_of(L" ");
-						wcsncpy(szDevice, szTemp, pos);
-
-						wchar_t szMemSize[64] = { 0 };
-						Edit_GetText(_this->m_CtlMemSize, szMemSize, sizeof(szMemSize) / sizeof(wchar_t));
-
-						wchar_t szFormat[10] = { 0 };
-						ComboBox_GetText(_this->m_CtlFormatParam, szFormat, sizeof(szFormat) / sizeof(wchar_t));
-
-						wchar_t szLabel[64] = { 0 };
-						Edit_GetText(_this->m_CtlLabel, szLabel, sizeof(szLabel) / sizeof(wchar_t));
-
-						bool tempFolderParam = Button_GetCheck(_this->m_CtlTempFolder);
-
-						EGpuRamDriveType driveType = ComboBox_GetCurSel(_this->m_CtlDriveType) == 0 ? EGpuRamDriveType::HD : EGpuRamDriveType::FD;
-						bool driveRemovable = ComboBox_GetCurSel(_this->m_CtlDriveRemovable) == 0 ? false : true;
-
-						wchar_t szMountPoint[10] = { 0 };
-						ComboBox_GetText(_this->m_CtlDriveLetter, szMountPoint, sizeof(szMountPoint) / sizeof(wchar_t));
-
-						_snwprintf_s(nArguments, sizeof(nArguments), L"--device %s --size %s --mount %s --format %s --label %s %s --hide",
-							szDevice, szMemSize, szMountPoint, szFormat, szLabel, tempFolderParam ? L"--temp_folder" : L"");
-						taskManager.CreateTaskJob(_this->wszTaskJobName, nPath, nArguments);
+						taskManager.CreateTaskJob(taskJobName, nPath, nArguments);
 					}
 					else {
-						taskManager.DeleteTaskJob(_this->wszTaskJobName);
+						taskManager.DeleteTaskJob(taskJobName);
 					}
-
-					/*
-					xfc::RegKey obKey;
-					LPCTSTR keyName = L"Software\\Microsoft\\Windows\\CurrentVersion\\Run";
-					LPCTSTR valueName = L"GPURAMDRIVE";
-
-					if (!checked) {
-						wchar_t nPath[MAX_PATH];
-						GetModuleFileName(NULL, nPath, MAX_PATH);
-						wchar_t value[MAX_PATH * 4] = { 0 };
-
-						wchar_t szTemp[64] = { 0 };
-						wchar_t szDevice[64] = { 0 };
-						ComboBox_GetText(_this->m_CtlGpuList, szTemp, sizeof(szTemp) / sizeof(wchar_t));
-						size_t pos = std::wstring(szTemp).find_first_of(L" ");
-						wcsncpy(szDevice, szTemp, pos);
-
-						wchar_t szMemSize[64] = { 0 };
-						Edit_GetText(_this->m_CtlMemSize, szMemSize, sizeof(szMemSize) / sizeof(wchar_t));
-
-						wchar_t szFormat[10] = { 0 };
-						ComboBox_GetText(_this->m_CtlFormatParam, szFormat, sizeof(szFormat) / sizeof(wchar_t));
-
-						wchar_t szLabel[64] = { 0 };
-						Edit_GetText(_this->m_CtlLabel, szLabel, sizeof(szLabel) / sizeof(wchar_t));
-
-						bool tempFolderParam = Button_GetCheck(_this->m_CtlTempFolder);
-
-						EGpuRamDriveType driveType = ComboBox_GetCurSel(_this->m_CtlDriveType) == 0 ? eGpuRamDriveType_HD : eGpuRamDriveType_FD;
-						bool driveRemovable = ComboBox_GetCurSel(_this->m_CtlDriveRemovable) == 0 ? false : true;
-
-						wchar_t szMountPoint[10] = { 0 };
-						ComboBox_GetText(_this->m_CtlDriveLetter, szMountPoint, sizeof(szMountPoint) / sizeof(wchar_t));
-
-						_snwprintf_s(value, sizeof(value), L"\"%s\" --device %s --size %s --mount %s --format %s --label %s %s --hide",
-							nPath, szDevice, szMemSize, szMountPoint, szFormat, szLabel, tempFolderParam ? L"--temp_folder" : L"");
-
-						obKey.SetKeyValue(keyName, valueName, value, (DWORD)wcslen(value) * sizeof(wchar_t), true, false, HKEY_CURRENT_USER);
-					}
-					else {
-						obKey.QuickDeleteKey(keyName, HKEY_CURRENT_USER);
-					}
-					*/
 				}
 			}
 			break;

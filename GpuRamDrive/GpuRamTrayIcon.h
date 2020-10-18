@@ -4,7 +4,7 @@ class GpuRamTrayIcon
 {
 private:
 	NOTIFYICONDATA m_Data;
-	std::wstring m_Tooltip;
+	wchar_t m_Tooltip[256] = {};
 
 public:
 	GpuRamTrayIcon();
@@ -13,6 +13,6 @@ public:
 	bool CreateIcon(HWND hWnd, HICON hIcon, UINT callbackMsg);
 	bool Destroy();
 
-	bool SetTooltip(const std::wstring& tooltip);
+	bool SetTooltip(const std::wstring& tooltip, DWORD gpu);
 };
 

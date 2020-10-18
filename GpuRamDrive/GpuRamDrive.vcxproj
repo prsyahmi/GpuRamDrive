@@ -385,6 +385,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Config.h" />
     <ClInclude Include="GpuRamDrive.h" />
     <ClInclude Include="GpuRamGui.h" />
     <ClInclude Include="GpuRamTrayIcon.h" />
@@ -395,6 +396,7 @@
     <ClInclude Include="TaskManager.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Config.cpp" />
     <ClCompile Include="EntryPoint.cpp" />
     <ClCompile Include="GpuRamDrive.cpp" />
     <ClCompile Include="GpuRamGui.cpp" />
