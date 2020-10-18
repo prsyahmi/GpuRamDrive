@@ -21,7 +21,7 @@ bool GpuRamTrayIcon::CreateIcon(HWND hWnd, HICON hIcon, UINT callbackMsg)
 {
 	m_Data.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP/* | NIF_GUID*/;
 	m_Data.hWnd = hWnd;
-	wcsncpy_s(m_Data.szTip, ARRAYSIZE(m_Data.szTip), m_Tooltip.c_str(), min(ARRAYSIZE(m_Data.szTip), m_Tooltip.length()));
+	wcsncpy_s(m_Data.szTip, ARRAYSIZE(m_Data.szTip), m_Tooltip, min(ARRAYSIZE(m_Data.szTip), wcslen(m_Tooltip)));
 	m_Data.hIcon = hIcon;
 	m_Data.uID = 1;
 	m_Data.uCallbackMessage = callbackMsg;
@@ -34,10 +34,10 @@ bool GpuRamTrayIcon::Destroy()
 	return Shell_NotifyIcon(NIM_DELETE, &m_Data) > 0;
 }
 
-bool GpuRamTrayIcon::SetTooltip(const std::wstring& tooltip)
+bool GpuRamTrayIcon::SetTooltip(const std::wstring& tooltip, DWORD gpu)
 {
-	m_Tooltip = tooltip;
-	wcsncpy_s(m_Data.szTip, ARRAYSIZE(m_Data.szTip), m_Tooltip.c_str(), min(ARRAYSIZE(m_Data.szTip), m_Tooltip.length()));
+	_snwprintf_s(m_Tooltip, sizeof(m_Tooltip), L"%s %d", tooltip.c_str(), gpu);
+	wcsncpy_s(m_Data.szTip, ARRAYSIZE(m_Data.szTip), m_Tooltip, min(ARRAYSIZE(m_Data.szTip), wcslen(m_Tooltip)));
 
 	return Shell_NotifyIcon(NIM_MODIFY, &m_Data) > 0;
 }

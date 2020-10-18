@@ -30,20 +30,12 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "GpuRamGui.h"
 
 const wchar_t GPU_HELP_STRING[] = L"Usage:\n"
-"  GpuRamDrive.exe --device CUDA --size 256 --mount j: --format exfat --label RamDrive --temp_folder\n"
+"  GpuRamDrive.exe --device 0 --hide\n"
 "\n"
 "Options:\n"
-"  --device <Device Name>   Search string for GPU device\n"
-"  --size <Size in MB>      Size to be allocated for ram drive\n"
-"  --mount <Drive letter>   Mount drive\n"
-"  --format <Type>          Format to exFAT (Default), FAT32 or NTFS\n"
-"  --label <Name>           Set drive label name\n"
-"  --type <Type>            Drive type: hd or fd\n"
-"  --temp_folder            Create a temp folder\n"
-"  --removable              Create a removable drive\n"
+"  --device <Device Id>     Set the GPU device\n"
 "  --hide                   Hide GUI to tray\n"
 "  --help                   Show this help\n";
-
 
 int APIENTRY wWinMain(
 	_In_ HINSTANCE hInstance,
@@ -57,65 +49,30 @@ int APIENTRY wWinMain(
 	int nArgs;
 	szArglist = CommandLineToArgvW(GetCommandLineW(), &nArgs);
 
-	LPWSTR GpuDevice = nullptr;
-	size_t GpuSize = 0;
-	LPWSTR GpuDriveLetter = nullptr;
-	LPWSTR GpuFormatParam = L"exFAT";
-	LPWSTR GpuLabelParam = L"";
-	LPWSTR GpuDriveType = L"HD";
-	bool GpuDriveRemovable = false;
-	bool GpuMount = false;
-	bool HelpRequest = false;
-	bool TempFolder = false;
+	size_t gpuDevice = -1;
+	bool gpuMount = false;
+	bool helpRequest = false;
 
 	if (szArglist) {
 		for (int i = 0; i < nArgs; i++) {
 			if (_wcsicmp(szArglist[i], L"--device") == 0 && i + 1 < nArgs)
 			{
-				GpuDevice = szArglist[i + 1];
-			}
-			else if (_wcsicmp(szArglist[i], L"--size") == 0 && i + 1 < nArgs)
-			{
-				GpuSize = _wtoi64(szArglist[i + 1]);
-			}
-			else if (_wcsicmp(szArglist[i], L"--mount") == 0 && i + 1 < nArgs)
-			{
-				GpuDriveLetter = szArglist[i + 1];
-			}
-			else if (_wcsicmp(szArglist[i], L"--format") == 0 && i + 1 < nArgs)
-			{
-				GpuFormatParam = szArglist[i + 1];
-			}
-			else if (_wcsicmp(szArglist[i], L"--label") == 0 && i + 1 < nArgs)
-			{
-				GpuLabelParam = szArglist[i + 1];
-			}
-			else if (_wcsicmp(szArglist[i], L"--type") == 0 && i + 1 < nArgs)
-			{
-				GpuDriveType = szArglist[i + 1];
-			}
-			else if (_wcsicmp(szArglist[i], L"--removable") == 0)
-			{
-				GpuDriveRemovable = true;
+				gpuDevice = _wtoi64(szArglist[i + 1]);
 			}
 			else if (_wcsicmp(szArglist[i], L"--hide") == 0)
 			{
 				nCmdShow = SW_HIDE;
-			}
-			else if (_wcsicmp(szArglist[i], L"--temp_folder") == 0)
-			{
-				TempFolder = true;
 			}
 			else if (_wcsicmp(szArglist[i], L"--help") == 0 ||
 				_wcsicmp(szArglist[i], L"-h") == 0 ||
 				_wcsicmp(szArglist[i], L"/h") == 0 ||
 				_wcsicmp(szArglist[i], L"/?") == 0)
 			{
-				HelpRequest = true;
+				helpRequest = true;
 			}
 		}
 
-		if (HelpRequest) {
+		if (helpRequest) {
 			if (GetConsoleWindow() == NULL) {
 				MessageBoxW(NULL, GPU_HELP_STRING, L"GpuRamDrive help", MB_OK);
 			}
@@ -123,20 +80,17 @@ int APIENTRY wWinMain(
 			return 0;
 		}
 
-		GpuMount = GpuDevice && GpuSize && GpuDriveLetter;
+		gpuMount = gpuDevice >= 0 && gpuDevice < 10;
 	}
 
 	if (!gui.Create(hInstance, L"GPU Ram Drive", nCmdShow)) {
 		return -1;
 	}
 
-	wchar_t formatParam[64] = { 0 };
-	_snwprintf_s(formatParam, sizeof(formatParam), L"/fs:%s /q", GpuFormatParam);
-
-	if (GpuMount) {
+	if (gpuMount) {
 		try
 		{
-			gui.Mount(GpuDevice, GpuSize, GpuDriveLetter, formatParam, GpuLabelParam, GpuDriveType, GpuDriveRemovable, TempFolder);
+			gui.Mount(gpuDevice);
 		}
 		catch (const std::exception& ex)
 		{
