@@ -13,6 +13,6 @@ public:
 	bool CreateIcon(HWND hWnd, HICON hIcon, UINT callbackMsg);
 	bool Destroy();
 
-	bool SetTooltip(const std::wstring& tooltip, DWORD gpu);
+	bool SetTooltip(const std::wstring& tooltip, char driveLetter);
 };
 

@@ -35,7 +35,6 @@ public:
 
 	bool Create(HINSTANCE hInst, const std::wstring& title, int nCmdShow);
 	int Loop();
-	void Mount(const std::wstring& device, size_t size, const std::wstring& driveLetter, const std::wstring& formatParam, const std::wstring& labelParam, const std::wstring& driveType, bool removable, bool tempFolderParam);
 	void Mount(DWORD gpu);
 	void RestoreWindow();
 
@@ -44,8 +43,9 @@ private:
 	void OnDestroy();
 	void OnEndSession();
 	void OnResize(WORD width, WORD height, bool minimized);
-	void restoreGuiParams(DWORD gpu, DWORD suggestedRamSize);
-	void saveGuiParams(DWORD gpu);
+	void RestoreGuiParams(DWORD gpu, DWORD suggestedRamSize);
+	void SaveGuiParams(DWORD gpu);
+	bool CheckDriveIsMounted(char letter, wchar_t* type);
 	void OnMountClicked();
 	void OnTrayInteraction(LPARAM lParam);
 	void UpdateState();

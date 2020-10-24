@@ -54,6 +54,11 @@ GPURamDrive::GPURamDrive()
 	, m_ShmReqEvent(NULL)
 	, m_ShmRespEvent(NULL)
 	, m_ShmView(nullptr)
+	, m_PlatformId()
+	, m_DeviceId()
+	, m_BufSize()
+	, m_BufStart()
+	, config(L"GpuRamDrive")
 #if GPU_API == GPU_API_CUDA
 	, m_cuDev(0)
 	, m_cuCtx(nullptr)
@@ -261,10 +266,7 @@ void GPURamDrive::CreateRamDevice(cl_platform_id PlatformId, cl_device_id Device
 			_snwprintf_s(temporalFolderName, sizeof(temporalFolderName), L"%s\\Temp", MountPoint);
 			CreateDirectory(temporalFolderName, NULL);
 
-			obKey.SetKeyValue(L"Environment", L"TEMP", temporalFolderName, (DWORD)wcslen(temporalFolderName) * 2, true, false, HKEY_CURRENT_USER);
-			obKey.SetKeyValue(L"Environment", L"TMP", temporalFolderName, (DWORD)wcslen(temporalFolderName) * 2, true, false, HKEY_CURRENT_USER);
-			SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)"Environment", SMTO_ABORTIFHUNG, 5000, NULL);
-			SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"Environment", SMTO_ABORTIFHUNG, 5000, NULL);
+			config.setMountTempEnvironment(temporalFolderName);
 		}
 	}
 
@@ -283,20 +285,19 @@ void GPURamDrive::ImdiskMountDevice(const wchar_t* MountPoint)
 	if (!ImDiskCreateDevice(NULL, &dskGeom, nullptr, flags, m_ServiceName.c_str(), FALSE, (LPWSTR)MountPoint)) {
 		throw std::runtime_error("Unable to create and mount ImDisk drive");
 	}
-	SaveTempEnvironmentVariable();
 }
 
 void GPURamDrive::ImdiskUnmountDevice()
 {
 	if (m_MountPoint.length() == 0) return;
-	
+	config.RestoreOriginalTempEnvironment();
+
 	ImDiskRemoveDevice(NULL, 0, m_MountPoint.c_str());
 	m_MountPoint.clear();
 
 	if (m_GpuThread.get_id() != std::this_thread::get_id()) {
 		if (m_GpuThread.joinable()) m_GpuThread.join();
 	}
-	RestoreTempEnvironmentVariable();
 }
 
 void GPURamDrive::Close()
@@ -536,33 +537,4 @@ void GPURamDrive::ImdiskHandleComm()
 			return;
 		}
 	}
-}
-
-void GPURamDrive::SaveTempEnvironmentVariable()
-{
-	DWORD dwSizeBak = obKey.GetSizeOfValue(_T("Environment"), L"TEMP_GPURAMDRIVE", HKEY_CURRENT_USER);
-	if (dwSizeBak == 0) {
-		DWORD dwSize = obKey.GetSizeOfValue(_T("Environment"), L"TEMP", HKEY_CURRENT_USER);
-		DWORD iTotalLength = dwSize + 1;
-		memset(tempEnvironmentVariable, 0, iTotalLength);
-		memset(tmpEnvironmentVariable, 0, iTotalLength);
-		obKey.GetKeyValue(_T("Environment"), L"TEMP", tempEnvironmentVariable, iTotalLength);
-		obKey.GetKeyValue(_T("Environment"), L"TMP", tmpEnvironmentVariable, iTotalLength);
-
-		obKey.SetKeyValue(L"Environment", L"TEMP_GPURAMDRIVE", tempEnvironmentVariable, (DWORD)wcslen(tempEnvironmentVariable) * sizeof(wchar_t), true, false, HKEY_CURRENT_USER);
-		obKey.SetKeyValue(L"Environment", L"TMP_GPURAMDRIVE", tmpEnvironmentVariable, (DWORD)wcslen(tmpEnvironmentVariable) * sizeof(wchar_t), true, false, HKEY_CURRENT_USER);
-	}
-
-	DWORD dwSize = obKey.GetSizeOfValue(_T("Environment"), L"TEMP_GPURAMDRIVE", HKEY_CURRENT_USER);
-	DWORD iTotalLength = dwSize + 1;
-	memset(tempEnvironmentVariable, 0, iTotalLength);
-	memset(tmpEnvironmentVariable, 0, iTotalLength);
-	obKey.GetKeyValue(_T("Environment"), L"TEMP_GPURAMDRIVE", tempEnvironmentVariable, iTotalLength);
-	obKey.GetKeyValue(_T("Environment"), L"TMP_GPURAMDRIVE", tmpEnvironmentVariable, iTotalLength);
-}
-
-void GPURamDrive::RestoreTempEnvironmentVariable()
-{
-	obKey.SetKeyValue(L"Environment", L"TEMP", tempEnvironmentVariable, (DWORD)wcslen(tempEnvironmentVariable) * sizeof(wchar_t), true, false, HKEY_CURRENT_USER);
-	obKey.SetKeyValue(L"Environment", L"TMP", tmpEnvironmentVariable, (DWORD)wcslen(tmpEnvironmentVariable) * sizeof(wchar_t), true, false, HKEY_CURRENT_USER);
 }

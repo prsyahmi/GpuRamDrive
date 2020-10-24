@@ -29,6 +29,45 @@ void Config::deleteAllConfig(DWORD gpu)
 	deleteValue(gpu, L"StarOnWindows");
 }
 
+void Config::SaveOriginalTempEnvironment()
+{
+	if (!existValue(L"OriginalTemp") || !existValue(L"OriginalTmp")) {
+		wchar_t tempEnvironmentVariable[1024] = { 0 };
+		wchar_t tmpEnvironmentVariable[1024] = { 0 };
+		DWORD dwSize = obKey.GetSizeOfValue(_T("Environment"), L"TEMP", HKEY_CURRENT_USER);
+		DWORD iTotalLength = dwSize + 1;
+		memset(tempEnvironmentVariable, 0, iTotalLength);
+		memset(tmpEnvironmentVariable, 0, iTotalLength);
+		obKey.GetKeyValue(_T("Environment"), L"TEMP", tempEnvironmentVariable, iTotalLength);
+		obKey.GetKeyValue(_T("Environment"), L"TMP", tmpEnvironmentVariable, iTotalLength);
+
+		setValue(L"OriginalTemp", tempEnvironmentVariable);
+		setValue(L"OriginalTmp", tmpEnvironmentVariable);
+	}
+}
+
+void Config::setMountTempEnvironment(LPCTSTR pszValue)
+{
+	obKey.SetKeyValue(L"Environment", L"TEMP", pszValue, (DWORD)wcslen(pszValue) * 2, true, false, HKEY_CURRENT_USER);
+	obKey.SetKeyValue(L"Environment", L"TMP", pszValue, (DWORD)wcslen(pszValue) * 2, true, false, HKEY_CURRENT_USER);
+	SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)"Environment", SMTO_ABORTIFHUNG, 5000, NULL);
+	SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"Environment", SMTO_ABORTIFHUNG, 5000, NULL);
+}
+
+void Config::RestoreOriginalTempEnvironment()
+{
+	wchar_t zsTemp[1024] = { 0 };
+	if (getValue(L"OriginalTemp", zsTemp)) {
+		obKey.SetKeyValue(L"Environment", L"TEMP", zsTemp, (DWORD)wcslen(zsTemp) * sizeof(wchar_t), true, false, HKEY_CURRENT_USER);
+	}
+
+	if (getValue(L"OriginalTmp", zsTemp)) {
+		obKey.SetKeyValue(L"Environment", L"TMP", zsTemp, (DWORD)wcslen(zsTemp) * sizeof(wchar_t), true, false, HKEY_CURRENT_USER);
+	}
+	SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)"Environment", SMTO_ABORTIFHUNG, 5000, NULL);
+	SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"Environment", SMTO_ABORTIFHUNG, 5000, NULL);
+}
+
 DWORD Config::getGpuList()
 {
 	DWORD pszValue = currentGpu;

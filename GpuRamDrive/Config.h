@@ -34,6 +34,12 @@ public:
 
 	void deleteAllConfig(DWORD gpu);
 
+	void Config::SaveOriginalTempEnvironment();
+
+	void Config::setMountTempEnvironment(LPCTSTR pszValue);
+
+	void Config::RestoreOriginalTempEnvironment();
+
 	DWORD getGpuList();
 	void setGpuList(DWORD pszValue);
 
