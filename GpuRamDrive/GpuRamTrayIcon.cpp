@@ -34,9 +34,9 @@ bool GpuRamTrayIcon::Destroy()
 	return Shell_NotifyIcon(NIM_DELETE, &m_Data) > 0;
 }
 
-bool GpuRamTrayIcon::SetTooltip(const std::wstring& tooltip, DWORD gpu)
+bool GpuRamTrayIcon::SetTooltip(const std::wstring& tooltip, char driveLetter)
 {
-	_snwprintf_s(m_Tooltip, sizeof(m_Tooltip), L"%s %d", tooltip.c_str(), gpu);
+	_snwprintf_s(m_Tooltip, sizeof(m_Tooltip), L"%s %c:", tooltip.c_str(), 'A' + driveLetter);
 	wcsncpy_s(m_Data.szTip, ARRAYSIZE(m_Data.szTip), m_Tooltip, min(ARRAYSIZE(m_Data.szTip), wcslen(m_Tooltip)));
 
 	return Shell_NotifyIcon(NIM_MODIFY, &m_Data) > 0;

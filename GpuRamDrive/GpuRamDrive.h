@@ -12,7 +12,7 @@
 #include <cuda.h>
 #endif
 
-#include "Regkey.h"
+#include "Config.h"
 
 
 struct TGPUDevice
@@ -61,9 +61,7 @@ private:
 
 	void* m_BufStart;
 
-	xfc::RegKey obKey;
-	wchar_t tempEnvironmentVariable[1024] = { 0 };
-	wchar_t tmpEnvironmentVariable[1024] = { 0 };
+	Config config;
 
 #if GPU_API == GPU_API_CUDA
 	CUdeviceptr m_cuDevPtr;
@@ -86,8 +84,6 @@ public:
 	void ImdiskUnmountDevice();
 	bool IsMounted();
 	void SetStateChangeCallback(const std::function<void()> callback);
-	void SaveTempEnvironmentVariable();
-	void RestoreTempEnvironmentVariable();
 
 private:
 	void Close();
