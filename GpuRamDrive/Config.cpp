@@ -29,7 +29,7 @@ void Config::deleteAllConfig(DWORD gpu)
 	deleteValue(gpu, L"StarOnWindows");
 }
 
-void Config::SaveOriginalTempEnvironment()
+void Config::saveOriginalTempEnvironment()
 {
 	if (!existValue(L"OriginalTemp") || !existValue(L"OriginalTmp")) {
 		wchar_t tempEnvironmentVariable[1024] = { 0 };
@@ -54,7 +54,7 @@ void Config::setMountTempEnvironment(LPCTSTR pszValue)
 	SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"Environment", SMTO_ABORTIFHUNG, 5000, NULL);
 }
 
-void Config::RestoreOriginalTempEnvironment()
+void Config::restoreOriginalTempEnvironment()
 {
 	wchar_t zsTemp[1024] = { 0 };
 	if (getValue(L"OriginalTemp", zsTemp)) {
@@ -152,6 +152,19 @@ void Config::getDriveLabel(LPTSTR pszValue)
 void Config::setDriveLabel(LPCTSTR pszValue)
 {
 	setValue(currentGpu, L"DriveLabel", pszValue);
+}
+
+void Config::getImageFile(LPTSTR pszValue)
+{
+	if (!getValue(currentGpu, L"ImageFile", pszValue))
+	{
+		_tcscpy(pszValue, L"");
+	}
+}
+
+void Config::setImageFile(LPCTSTR pszValue)
+{
+	setValue(currentGpu, L"ImageFile", pszValue);
 }
 
 DWORD Config::getTempFolder()

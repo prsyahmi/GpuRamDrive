@@ -386,6 +386,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Config.h" />
+    <ClInclude Include="DiskUtil.h" />
     <ClInclude Include="GpuRamDrive.h" />
     <ClInclude Include="GpuRamGui.h" />
     <ClInclude Include="GpuRamTrayIcon.h" />
@@ -397,6 +398,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Config.cpp" />
+    <ClCompile Include="DiskUtil.cpp" />
     <ClCompile Include="EntryPoint.cpp" />
     <ClCompile Include="GpuRamDrive.cpp" />
     <ClCompile Include="GpuRamGui.cpp" />

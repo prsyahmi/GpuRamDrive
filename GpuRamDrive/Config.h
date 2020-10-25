@@ -11,6 +11,7 @@ private:
 	LPTSTR pszKeyName;
 	DWORD currentGpu;
 
+private:
 	bool getValue(LPCTSTR pszValueName, LPTSTR pszValue);
 	bool getValue(DWORD gpu, LPCTSTR pszValueName, LPTSTR pszValue);
 
@@ -34,11 +35,9 @@ public:
 
 	void deleteAllConfig(DWORD gpu);
 
-	void Config::SaveOriginalTempEnvironment();
-
-	void Config::setMountTempEnvironment(LPCTSTR pszValue);
-
-	void Config::RestoreOriginalTempEnvironment();
+	void saveOriginalTempEnvironment();
+	void setMountTempEnvironment(LPCTSTR pszValue);
+	void restoreOriginalTempEnvironment();
 
 	DWORD getGpuList();
 	void setGpuList(DWORD pszValue);
@@ -60,6 +59,9 @@ public:
 
 	void getDriveLabel(LPTSTR pszValue);
 	void setDriveLabel(LPCTSTR pszValue);
+
+	void getImageFile(LPTSTR pszValue);
+	void setImageFile(LPCTSTR pszValue);
 
 	DWORD getTempFolder();
 	void setTempFolder(DWORD pszValue);

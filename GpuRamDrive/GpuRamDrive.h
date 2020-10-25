@@ -13,6 +13,7 @@
 #endif
 
 #include "Config.h"
+#include "DiskUtil.h"
 
 
 struct TGPUDevice
