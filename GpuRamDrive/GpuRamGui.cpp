@@ -30,6 +30,8 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "GpuRamGui.h"
 #include "resource.h"
 #include "TaskManager.h"
+#include "DiskUtil.h"
+
 
 #define GPU_GUI_CLASS L"GPURAMDRIVE_CLASS"
 #define SWM_TRAYINTERACTION    WM_APP + 1
@@ -57,12 +59,15 @@ GpuRamGui::GpuRamGui()
 	, m_CtlDriveRemovable(NULL)
 	, m_CtlDriveLabel(NULL)
 	, m_CtlDriveFormat(NULL)
+	, m_CtlImageFile(NULL)
+	, m_CtlChooseFileBtn(NULL)
 	, m_CtlTempFolder(NULL)
 	, m_CtlStartOnWindows(NULL)
 	, m_UpdateState(false)
 	, wszAppName(L"GpuRamDrive")
 	, wszTaskJobName(L"GPURAMDRIVE Task")
 	, config(wszAppName)
+	, diskUtil()
 {
 	INITCOMMONCONTROLSEX c;
 	c.dwSize = sizeof(c);
@@ -135,10 +140,10 @@ void GpuRamGui::OnCreate()
 	hStatic = CreateWindow(L"STATIC", L"Drive Letter/Type:", WS_CHILD | WS_VISIBLE | SS_NOPREFIX, 10, 53, 140, 20, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(hStatic, WM_SETFONT, (WPARAM)FontNormal, TRUE);
 
-	hStatic = CreateWindow(L"STATIC", L"File System (MB):", WS_CHILD | WS_VISIBLE | SS_NOPREFIX, 10, 93, 140, 20, m_hWnd, NULL, m_Instance, NULL);
+	hStatic = CreateWindow(L"STATIC", L"Format/MB/Label:", WS_CHILD | WS_VISIBLE | SS_NOPREFIX, 10, 93, 140, 20, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(hStatic, WM_SETFONT, (WPARAM)FontNormal, TRUE);
 
-	hStatic = CreateWindow(L"STATIC", L"Volumen Label:", WS_CHILD | WS_VISIBLE | SS_NOPREFIX, 10, 133, 140, 20, m_hWnd, NULL, m_Instance, NULL);
+	hStatic = CreateWindow(L"STATIC", L"Image File:", WS_CHILD | WS_VISIBLE | SS_NOPREFIX, 10, 133, 140, 20, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(hStatic, WM_SETFONT, (WPARAM)FontNormal, TRUE);
 
 	m_CtlGpuList = CreateWindow(L"COMBOBOX", NULL, WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST, 150, 10, 150, 25, m_hWnd, NULL, m_Instance, NULL);
@@ -159,10 +164,16 @@ void GpuRamGui::OnCreate()
 	m_CtlMemSize = CreateWindow(L"EDIT", L"1", WS_CHILD | WS_VISIBLE | WS_BORDER | WS_TABSTOP | ES_NUMBER, 315, 90, 150, 28, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(m_CtlMemSize, WM_SETFONT, (WPARAM)FontNormal, TRUE);
 
-	m_CtlDriveLabel = CreateWindow(L"EDIT", L"", WS_CHILD | WS_VISIBLE | WS_BORDER | WS_TABSTOP, 150, 130, 150, 28, m_hWnd, NULL, m_Instance, NULL);
+	m_CtlDriveLabel = CreateWindow(L"EDIT", L"", WS_CHILD | WS_VISIBLE | WS_BORDER | WS_TABSTOP, 480, 90, 182, 28, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(m_CtlDriveLabel, WM_SETFONT, (WPARAM)FontNormal, TRUE);
 
-	m_CtlTempFolder = CreateWindow(L"BUTTON", L"Create TEMP Folder", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_CHECKBOX, 315, 132, 154, 25, m_hWnd, NULL, m_Instance, NULL);
+	m_CtlImageFile = CreateWindow(L"EDIT", L"", WS_CHILD | WS_VISIBLE | WS_BORDER | WS_TABSTOP, 150, 130, 285, 28, m_hWnd, NULL, m_Instance, NULL);
+	SendMessage(m_CtlImageFile, WM_SETFONT, (WPARAM)FontNormal, TRUE);
+
+	m_CtlChooseFileBtn = CreateWindow(L"BUTTON", L"...", WS_CHILD | WS_VISIBLE | WS_TABSTOP, 440, 130, 25, 28, m_hWnd, NULL, m_Instance, NULL);
+	SendMessage(m_CtlChooseFileBtn, WM_SETFONT, (WPARAM)FontBold, TRUE);
+
+	m_CtlTempFolder = CreateWindow(L"BUTTON", L"Create TEMP Folder", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_CHECKBOX, 480, 132, 154, 25, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(m_CtlTempFolder, WM_SETFONT, (WPARAM)FontNormal, TRUE);
 
 	m_CtlStartOnWindows = CreateWindow(L"BUTTON", L"Start on windows", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_CHECKBOX, 520, 220, 154, 25, m_hWnd, NULL, m_Instance, NULL);
@@ -176,7 +187,7 @@ void GpuRamGui::OnCreate()
 	for (wchar_t c = 'A'; c <= 'Z'; c++)
 	{
 		wchar_t szTemp2[64];
-		_snwprintf_s(szTemp, sizeof(szTemp), (CheckDriveIsMounted(c, szTemp2) ? L"%c: - %s" : L"%c:%s"), c, szTemp2);
+		_snwprintf_s(szTemp, sizeof(szTemp), (diskUtil.checkDriveIsMounted(c, szTemp2) ? L"%c: - %s" : L"%c:%s"), c, szTemp2);
 		ComboBox_AddString(m_CtlDriveLetter, szTemp);
 	}
 	ComboBox_AddString(m_CtlDriveType, L"Hard Drive");
@@ -252,6 +263,9 @@ void GpuRamGui::RestoreGuiParams(DWORD gpu, DWORD suggestedRamSize)
 
 	config.getDriveLabel(szTemp);
 	Edit_SetText(m_CtlDriveLabel, szTemp);
+
+	config.getImageFile(szTemp);
+	Edit_SetText(m_CtlImageFile, szTemp);
 }
 
 void GpuRamGui::SaveGuiParams(DWORD gpu)
@@ -271,45 +285,9 @@ void GpuRamGui::SaveGuiParams(DWORD gpu)
 
 	Edit_GetText(m_CtlDriveLabel, szTemp, sizeof(szTemp) / sizeof(wchar_t));
 	config.setDriveLabel(szTemp);
-}
 
-bool GpuRamGui::CheckDriveIsMounted(char letter, wchar_t* type)
-{
-	wchar_t szTemp[64];
-	_snwprintf_s(szTemp, sizeof(szTemp), L"%c:\\", letter);
-	UINT res = GetDriveType(szTemp);
-	if (type != NULL)
-	{
-		switch (res)
-		{
-		case 0:
-			_tcsncpy(type, L"Indetermined", sizeof(L"Indetermined"));
-			break;
-		case 1:
-			//_tcsncpy(type, L"Not available", sizeof(L"Not available"));
-			_tcsncpy(type, L"", sizeof(L""));
-			break;
-		case 2:
-			_tcsncpy(type, L"Removable", sizeof(L"Removable"));
-			break;
-		case 3:
-			_tcsncpy(type, L"HardDisk", sizeof(L"HardDisk"));
-			break;
-		case 4:
-			_tcsncpy(type, L"Network", sizeof(L"Network"));
-			break;
-		case 5:
-			_tcsncpy(type, L"CD-ROM", sizeof(L"CD-ROM"));
-			break;
-		case 6:
-			_tcsncpy(type, L"RamDisk", sizeof(L"RamDisk"));
-			break;
-		default: 
-			_tcsncpy(type, L"Indetermined", sizeof(L"Indetermined"));
-		}
-	}
-
-	return res > 1;
+	Edit_GetText(m_CtlImageFile, szTemp, sizeof(szTemp) / sizeof(wchar_t));
+	config.setImageFile(szTemp);
 }
 
 void GpuRamGui::OnDestroy()
@@ -372,7 +350,7 @@ void GpuRamGui::OnMountClicked()
 		ComboBox_GetText(m_CtlDriveLetter, szTemp, sizeof(szTemp) / sizeof(wchar_t));
 		wchar_t* mountPointParam = szTemp;
 
-		if (CheckDriveIsMounted(mountPointParam[0], NULL))
+		if (diskUtil.checkDriveIsMounted(mountPointParam[0], NULL))
 		{
 			MessageBox(m_hWnd, L"It is not possible to mount the unit, it is already in use", wszAppName, MB_OK);
 			return;
@@ -386,11 +364,44 @@ void GpuRamGui::OnMountClicked()
 		}
 		catch (const std::exception& ex)
 		{
-			MessageBoxA(m_hWnd, ex.what(), "Error while mounting GPU Ram Drive", MB_OK);
+			MessageBoxA(m_hWnd, ex.what(), "Error while mounting drive", MB_OK);
 		}
+		try
+		{
+			wchar_t szImageFile[MAX_PATH] = { 0 };
+			config.getImageFile(szImageFile);
+			if (wcslen(szImageFile) > 0 && diskUtil.fileExists(szImageFile)) {
+				wchar_t szDeviceVolumen[MAX_PATH] = { 0 };
+				_snwprintf_s(szDeviceVolumen, sizeof(szDeviceVolumen), L"\\\\.\\%s", mountPointParam);
+				diskUtil.restore(szImageFile, szDeviceVolumen);
+			}
+		}
+		catch (const std::exception& ex)
+		{
+			MessageBoxA(m_hWnd, ex.what(), "Error restoring the image file", MB_OK);
+		}
+
 	}
 	else
 	{
+		try
+		{
+			wchar_t szImageFile[MAX_PATH] = { 0 };
+			config.getImageFile(szImageFile);
+			if (wcslen(szImageFile) > 0) {
+				wchar_t szTemp[64] = { 0 };
+				ComboBox_GetText(m_CtlDriveLetter, szTemp, sizeof(szTemp) / sizeof(wchar_t));
+
+				wchar_t szDeviceVolumen[MAX_PATH] = { 0 };
+				_snwprintf_s(szDeviceVolumen, sizeof(szDeviceVolumen), L"\\\\.\\%s", szTemp);
+
+				diskUtil.save(szDeviceVolumen, szImageFile);
+			}
+		}
+		catch (const std::exception& ex)
+		{
+			MessageBoxA(m_hWnd, ex.what(), "Error saving the image file", MB_OK);
+		}
 		m_RamDrive.ImdiskUnmountDevice();
 	}
 }
@@ -423,9 +434,11 @@ void GpuRamGui::UpdateState()
 		EnableWindow(m_CtlDriveType, FALSE);
 		EnableWindow(m_CtlDriveRemovable, FALSE);
 		EnableWindow(m_CtlGpuList, FALSE);
+		EnableWindow(m_CtlDriveFormat, FALSE);
 		EnableWindow(m_CtlMemSize, FALSE);
 		EnableWindow(m_CtlDriveLabel, FALSE);
-		EnableWindow(m_CtlDriveFormat, FALSE);
+		EnableWindow(m_CtlImageFile, FALSE);
+		EnableWindow(m_CtlChooseFileBtn, FALSE);
 		EnableWindow(m_CtlTempFolder, FALSE);
 		EnableWindow(m_CtlStartOnWindows, FALSE);
 		Edit_SetText(m_CtlMountBtn, L"Unmount");
@@ -436,9 +449,11 @@ void GpuRamGui::UpdateState()
 		EnableWindow(m_CtlDriveType, TRUE);
 		EnableWindow(m_CtlDriveRemovable, TRUE);
 		EnableWindow(m_CtlGpuList, TRUE);
+		EnableWindow(m_CtlDriveFormat, TRUE);
 		EnableWindow(m_CtlMemSize, TRUE);
 		EnableWindow(m_CtlDriveLabel, TRUE);
-		EnableWindow(m_CtlDriveFormat, TRUE);
+		EnableWindow(m_CtlImageFile, TRUE);
+		EnableWindow(m_CtlChooseFileBtn, TRUE);
 		EnableWindow(m_CtlTempFolder, TRUE);
 		EnableWindow(m_CtlStartOnWindows, TRUE);
 		Edit_SetText(m_CtlMountBtn, L"Mount");
@@ -533,7 +548,6 @@ LRESULT CALLBACK GpuRamGui::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 			}
 
 		case WM_COMMAND:
-		{
 			if (_this) {
 				if ((HANDLE)lParam == _this->m_CtlGpuList ||
 					(HANDLE)lParam == _this->m_CtlDriveLetter ||
@@ -570,7 +584,7 @@ LRESULT CALLBACK GpuRamGui::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 					_this->SaveGuiParams(_this->config.getGpuList());
 
 					if (!checked) {
-						_this->config.SaveOriginalTempEnvironment();
+						_this->config.saveOriginalTempEnvironment();
 					}
 				}
 				else if ((HANDLE)lParam == _this->m_CtlStartOnWindows) {
@@ -595,9 +609,26 @@ LRESULT CALLBACK GpuRamGui::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 						taskManager.DeleteTaskJob(taskJobName);
 					}
 				}
+				else if ((HANDLE)lParam == _this->m_CtlDriveLabel || (HANDLE)lParam == _this->m_CtlImageFile || (HANDLE)lParam == _this->m_CtlMemSize) {
+					if (HIWORD(wParam) == EN_KILLFOCUS) {
+						_this->SaveGuiParams(_this->config.getGpuList());
+					}
+					else {
+						return DefWindowProc(hWnd, message, wParam, lParam);
+					}
+				}
+				else if ((HANDLE)lParam == _this->m_CtlChooseFileBtn) {
+					std::wstring file = _this->diskUtil.chooserFile(L"Select the image file", L"(*.img) Image file\0*.img\0");
+					if (file.length() > 0) {
+						Edit_SetText(_this->m_CtlImageFile, file.c_str());
+						_this->SaveGuiParams(_this->config.getGpuList());
+					}
+				}
+				else {
+					return DefWindowProc(hWnd, message, wParam, lParam);
+				}
 			}
 			break;
-		}
 
 		case SWM_TRAYINTERACTION:
 			if (_this) _this->OnTrayInteraction(lParam);

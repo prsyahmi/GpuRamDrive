@@ -290,7 +290,7 @@ void GPURamDrive::ImdiskMountDevice(const wchar_t* MountPoint)
 void GPURamDrive::ImdiskUnmountDevice()
 {
 	if (m_MountPoint.length() == 0) return;
-	config.RestoreOriginalTempEnvironment();
+	config.restoreOriginalTempEnvironment();
 
 	ImDiskRemoveDevice(NULL, 0, m_MountPoint.c_str());
 	m_MountPoint.clear();

@@ -20,6 +20,8 @@ private:
 	HWND m_CtlDriveRemovable;
 	HWND m_CtlDriveLabel;
 	HWND m_CtlDriveFormat;
+	HWND m_CtlImageFile;
+	HWND m_CtlChooseFileBtn;
 	HWND m_CtlTempFolder;
 	HWND m_CtlStartOnWindows;
 	bool m_UpdateState;
@@ -28,6 +30,7 @@ private:
 	LPCWSTR wszTaskJobName;
 
 	Config config;
+	DiskUtil diskUtil;
 
 public:
 	GpuRamGui();
@@ -45,7 +48,6 @@ private:
 	void OnResize(WORD width, WORD height, bool minimized);
 	void RestoreGuiParams(DWORD gpu, DWORD suggestedRamSize);
 	void SaveGuiParams(DWORD gpu);
-	bool CheckDriveIsMounted(char letter, wchar_t* type);
 	void OnMountClicked();
 	void OnTrayInteraction(LPARAM lParam);
 	void UpdateState();
