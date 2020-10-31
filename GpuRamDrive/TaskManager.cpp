@@ -57,7 +57,7 @@ bool TaskManager::CreateTaskJob(LPCWSTR wszTaskName, wchar_t* nPath, wchar_t* nA
 	pSettings->put_AllowDemandStart(VARIANT_FALSE);
 	pSettings->put_DisallowStartIfOnBatteries(VARIANT_FALSE);
 	pSettings->put_StopIfGoingOnBatteries(VARIANT_FALSE);
-	pSettings->put_MultipleInstances(TASK_INSTANCES_STOP_EXISTING);
+	pSettings->put_MultipleInstances(TASK_INSTANCES_IGNORE_NEW);
 	pSettings->put_ExecutionTimeLimit(_bstr_t(L"PT0S"));
 	pSettings->put_StartWhenAvailable(VARIANT_TRUE);
 	pSettings->Release();

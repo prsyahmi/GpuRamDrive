@@ -38,8 +38,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 #pragma comment(lib, "cuda.lib")
 #endif
 
-
-
 GPURamDrive::GPURamDrive()
 	: m_DriveType(EGpuRamDriveType::HD)
 	, m_DriveRemovable(false)
@@ -158,6 +156,9 @@ void GPURamDrive::RefreshGPUInfo()
 
 const std::vector<TGPUDevice>& GPURamDrive::GetGpuDevices()
 {
+	if (m_Devices.size() == 0) {
+		RefreshGPUInfo();
+	}
 	return m_Devices;
 }
 
@@ -283,6 +284,9 @@ void GPURamDrive::ImdiskMountDevice(const wchar_t* MountPoint)
 
 	m_MountPoint = MountPoint;
 	if (!ImDiskCreateDevice(NULL, &dskGeom, nullptr, flags, m_ServiceName.c_str(), FALSE, (LPWSTR)MountPoint)) {
+		m_GpuThread.detach();
+		Close();
+		ImdiskUnmountDevice();
 		throw std::runtime_error("Unable to create and mount ImDisk drive");
 	}
 }
