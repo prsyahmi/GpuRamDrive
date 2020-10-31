@@ -30,10 +30,10 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "GpuRamGui.h"
 
 const wchar_t GPU_HELP_STRING[] = L"Usage:\n"
-"  GpuRamDrive.exe --device 0 --hide\n"
+"  GpuRamDrive.exe --autoMount --hide\n"
 "\n"
 "Options:\n"
-"  --device <Device Id>     Set the GPU device\n"
+"  --autoMount              Mount all drivers with Start on windows\n"
 "  --hide                   Hide GUI to tray\n"
 "  --help                   Show this help\n";
 
@@ -49,15 +49,14 @@ int APIENTRY wWinMain(
 	int nArgs;
 	szArglist = CommandLineToArgvW(GetCommandLineW(), &nArgs);
 
-	size_t gpuDevice = -1;
 	bool gpuMount = false;
 	bool helpRequest = false;
 
 	if (szArglist) {
 		for (int i = 0; i < nArgs; i++) {
-			if (_wcsicmp(szArglist[i], L"--device") == 0 && i + 1 < nArgs)
+			if (_wcsicmp(szArglist[i], L"--autoMount") == 0)
 			{
-				gpuDevice = _wtoi64(szArglist[i + 1]);
+				gpuMount = true;
 			}
 			else if (_wcsicmp(szArglist[i], L"--hide") == 0)
 			{
@@ -79,27 +78,10 @@ int APIENTRY wWinMain(
 			wprintf(GPU_HELP_STRING);
 			return 0;
 		}
-
-		gpuMount = gpuDevice >= 0 && gpuDevice < 10;
 	}
 
-	if (!gui.Create(hInstance, L"GPU Ram Drive", nCmdShow)) {
+	if (!gui.Create(hInstance, L"GPU Ram Drive", nCmdShow, gpuMount)) {
 		return -1;
-	}
-
-	if (gpuMount) {
-		try
-		{
-			gui.Mount(gpuDevice);
-		}
-		catch (const std::exception& ex)
-		{
-			gui.RestoreWindow();
-			if (GetConsoleWindow() == NULL) {
-				MessageBoxA(NULL, ex.what(), "GpuRamDrive error", MB_OK);
-			}
-			fprintf(stderr, "GpuRamDrive exception: %s\n", ex.what());
-		}
 	}
 
 	return gui.Loop();

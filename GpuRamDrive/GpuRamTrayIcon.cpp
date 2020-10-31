@@ -17,12 +17,15 @@ GpuRamTrayIcon::~GpuRamTrayIcon()
 	Destroy();
 }
 
-bool GpuRamTrayIcon::CreateIcon(HWND hWnd, HICON hIcon, UINT callbackMsg)
+bool GpuRamTrayIcon::CreateIcon(HWND hWnd, HICON hIcon, HICON hIconMounted, UINT callbackMsg)
 {
+	m_hIcon = hIcon;
+	m_hIconMounted = hIconMounted;
+
 	m_Data.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP/* | NIF_GUID*/;
 	m_Data.hWnd = hWnd;
-	wcsncpy_s(m_Data.szTip, ARRAYSIZE(m_Data.szTip), m_Tooltip, min(ARRAYSIZE(m_Data.szTip), wcslen(m_Tooltip)));
-	m_Data.hIcon = hIcon;
+	wcsncpy_s(m_Data.szTip, ARRAYSIZE(m_Data.szTip), m_Tooltip.c_str(), min(ARRAYSIZE(m_Data.szTip), m_Tooltip.length()));
+	m_Data.hIcon = m_hIcon;
 	m_Data.uID = 1;
 	m_Data.uCallbackMessage = callbackMsg;
 
@@ -34,10 +37,13 @@ bool GpuRamTrayIcon::Destroy()
 	return Shell_NotifyIcon(NIM_DELETE, &m_Data) > 0;
 }
 
-bool GpuRamTrayIcon::SetTooltip(const std::wstring& tooltip, char driveLetter)
+bool GpuRamTrayIcon::SetTooltip(const std::wstring& tooltip, boolean isMounted)
 {
-	_snwprintf_s(m_Tooltip, sizeof(m_Tooltip), L"%s %c:", tooltip.c_str(), 'A' + driveLetter);
-	wcsncpy_s(m_Data.szTip, ARRAYSIZE(m_Data.szTip), m_Tooltip, min(ARRAYSIZE(m_Data.szTip), wcslen(m_Tooltip)));
-
+	if (isMounted)
+		m_Data.hIcon = m_hIconMounted;
+	else
+		m_Data.hIcon = m_hIcon;
+	m_Tooltip = tooltip;
+	wcsncpy_s(m_Data.szTip, ARRAYSIZE(m_Data.szTip), m_Tooltip.c_str(), min(ARRAYSIZE(m_Data.szTip), m_Tooltip.length()));
 	return Shell_NotifyIcon(NIM_MODIFY, &m_Data) > 0;
 }

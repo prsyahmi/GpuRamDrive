@@ -9,7 +9,7 @@ class Config
 private:
 	xfc::RegKey obKey;
 	LPTSTR pszKeyName;
-	DWORD currentGpu;
+	DWORD currentGpuId;
 
 private:
 	bool getValue(LPCTSTR pszValueName, LPTSTR pszValue);
@@ -43,6 +43,7 @@ public:
 	void setGpuList(DWORD pszValue);
 
 	DWORD getDriveLetter();
+	DWORD getDriveLetter(DWORD gpuId);
 	void setDriveLetter(DWORD pszValue);
 
 	DWORD getDriveType();
@@ -63,9 +64,13 @@ public:
 	void getImageFile(LPTSTR pszValue);
 	void setImageFile(LPCTSTR pszValue);
 
+	DWORD getReadOnly();
+	void setReadOnly(DWORD pszValue);
+
 	DWORD getTempFolder();
 	void setTempFolder(DWORD pszValue);
 
 	DWORD getStartOnWindows();
+	DWORD getStartOnWindows(DWORD gpuId);
 	void setStartOnWindows(DWORD pszValue);
 };

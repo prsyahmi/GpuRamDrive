@@ -1,4 +1,5 @@
 #pragma once
+#include <map>
 #include "GpuRamTrayIcon.h"
 #include "Config.h"
 
@@ -6,12 +7,14 @@
 class GpuRamGui
 {
 private:
-	GPURamDrive m_RamDrive;
+	std::map<DWORD,GPURamDrive> m_RamDrive;
 	HWND m_hWnd;
 	HINSTANCE m_Instance;
 	GpuRamTrayIcon m_Tray;
+	bool m_AutoMount;
 
 	HICON m_Icon;
+	HICON m_IconMounted;
 	HWND m_CtlGpuList;
 	HWND m_CtlMountBtn;
 	HWND m_CtlMemSize;
@@ -22,6 +25,7 @@ private:
 	HWND m_CtlDriveFormat;
 	HWND m_CtlImageFile;
 	HWND m_CtlChooseFileBtn;
+	HWND m_CtlReadOnly;
 	HWND m_CtlTempFolder;
 	HWND m_CtlStartOnWindows;
 	bool m_UpdateState;
@@ -36,9 +40,9 @@ public:
 	GpuRamGui();
 	~GpuRamGui();
 
-	bool Create(HINSTANCE hInst, const std::wstring& title, int nCmdShow);
+	bool Create(HINSTANCE hInst, const std::wstring& title, int nCmdShow, bool autoMount);
 	int Loop();
-	void Mount(DWORD gpu);
+	void AutoMount();
 	void RestoreWindow();
 
 private:
@@ -46,8 +50,10 @@ private:
 	void OnDestroy();
 	void OnEndSession();
 	void OnResize(WORD width, WORD height, bool minimized);
-	void RestoreGuiParams(DWORD gpu, DWORD suggestedRamSize);
-	void SaveGuiParams(DWORD gpu);
+	void ReloadDriveLetterList();
+	boolean isMounted();
+	void RestoreGuiParams(DWORD gpuId, DWORD suggestedRamSize);
+	void SaveGuiParams(DWORD gpuId);
 	void OnMountClicked();
 	void OnTrayInteraction(LPARAM lParam);
 	void UpdateState();

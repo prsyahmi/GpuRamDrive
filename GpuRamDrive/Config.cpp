@@ -4,7 +4,7 @@
 
 Config::Config(LPCTSTR keyName)
 {
-	currentGpu = 0;
+	currentGpuId = 0;
 	this->pszKeyName = new TCHAR[_tcslen(L"Software\\") + _tcslen(keyName) + 1];
 	_tcscpy(this->pszKeyName, L"Software\\");
 	_tcscat(this->pszKeyName, keyName);
@@ -70,7 +70,7 @@ void Config::restoreOriginalTempEnvironment()
 
 DWORD Config::getGpuList()
 {
-	DWORD pszValue = currentGpu;
+	DWORD pszValue = currentGpuId;
 	getValue(L"DefaultGpu", pszValue);
 	return pszValue;
 }
@@ -78,72 +78,77 @@ DWORD Config::getGpuList()
 void Config::setGpuList(DWORD pszValue)
 {
 	setValue(L"DefaultGpu", pszValue);
-	currentGpu = pszValue;
+	currentGpuId = pszValue;
 }
 
 DWORD Config::getDriveLetter()
 {
+	return getDriveLetter(currentGpuId);
+}
+
+DWORD Config::getDriveLetter(DWORD gpuId)
+{
 	DWORD pszValue = 'R' - 'A';
-	getValue(currentGpu, L"DriveLetter", pszValue);
+	getValue(gpuId, L"DriveLetter", pszValue);
 	return pszValue;
 }
 
 void Config::setDriveLetter(DWORD pszValue)
 {
-	setValue(currentGpu, L"DriveLetter", pszValue);
+	setValue(currentGpuId, L"DriveLetter", pszValue);
 }
 
 DWORD Config::getDriveType()
 {
 	DWORD pszValue = 0;
-	getValue(currentGpu, L"DriveType", pszValue);
+	getValue(currentGpuId, L"DriveType", pszValue);
 	return pszValue;
 }
 
 void Config::setDriveType(DWORD pszValue)
 {
-	setValue(currentGpu, L"DriveType", pszValue);
+	setValue(currentGpuId, L"DriveType", pszValue);
 }
 
 DWORD Config::getDriveRemovable()
 {
 	DWORD pszValue = 0;
-	getValue(currentGpu, L"DriveRemovable", pszValue);
+	getValue(currentGpuId, L"DriveRemovable", pszValue);
 	return pszValue;
 }
 
 void Config::setDriveRemovable(DWORD pszValue)
 {
-	setValue(currentGpu, L"DriveRemovable", pszValue);
+	setValue(currentGpuId, L"DriveRemovable", pszValue);
 }
 
 DWORD Config::getDriveFormat()
 {
 	DWORD pszValue = 1;
-	getValue(currentGpu, L"DriveFormat", pszValue);
+	getValue(currentGpuId, L"DriveFormat", pszValue);
 	return pszValue;
 }
 
 void Config::setDriveFormat(DWORD pszValue)
 {
-	setValue(currentGpu, L"DriveFormat", pszValue);
+	setValue(currentGpuId, L"DriveFormat", pszValue);
 }
 
 DWORD Config::getMemSize()
 {
 	DWORD pszValue = 0;
-	getValue(currentGpu, L"MemSize", pszValue);
+	getValue(currentGpuId, L"MemSize", pszValue);
 	return pszValue;
 }
 
 void Config::setMemSize(DWORD pszValue)
 {
-	setValue(currentGpu, L"MemSize", pszValue);
+	setValue(currentGpuId, L"MemSize", pszValue);
 }
 
 void Config::getDriveLabel(LPTSTR pszValue)
 {
-	if (!getValue(currentGpu, L"DriveLabel", pszValue))
+	if (!getValue(currentGpuId, L"DriveLabel", pszValue))
 	{
 		_tcscpy(pszValue, L"GpuDisk");
 	}
@@ -151,12 +156,12 @@ void Config::getDriveLabel(LPTSTR pszValue)
 
 void Config::setDriveLabel(LPCTSTR pszValue)
 {
-	setValue(currentGpu, L"DriveLabel", pszValue);
+	setValue(currentGpuId, L"DriveLabel", pszValue);
 }
 
 void Config::getImageFile(LPTSTR pszValue)
 {
-	if (!getValue(currentGpu, L"ImageFile", pszValue))
+	if (!getValue(currentGpuId, L"ImageFile", pszValue))
 	{
 		_tcscpy(pszValue, L"");
 	}
@@ -164,31 +169,48 @@ void Config::getImageFile(LPTSTR pszValue)
 
 void Config::setImageFile(LPCTSTR pszValue)
 {
-	setValue(currentGpu, L"ImageFile", pszValue);
+	setValue(currentGpuId, L"ImageFile", pszValue);
+}
+
+DWORD Config::getReadOnly()
+{
+	DWORD pszValue = 0;
+	getValue(currentGpuId, L"ReadOnly", pszValue);
+	return pszValue;
+}
+
+void Config::setReadOnly(DWORD pszValue)
+{
+	setValue(currentGpuId, L"ReadOnly", pszValue);
 }
 
 DWORD Config::getTempFolder()
 {
 	DWORD pszValue = 0;
-	getValue(currentGpu, L"TempFolder", pszValue);
+	getValue(currentGpuId, L"TempFolder", pszValue);
 	return pszValue;
 }
 
 void Config::setTempFolder(DWORD pszValue)
 {
-	setValue(currentGpu, L"TempFolder", pszValue);
+	setValue(currentGpuId, L"TempFolder", pszValue);
 }
 
 DWORD Config::getStartOnWindows()
 {
+	return getStartOnWindows(currentGpuId);
+}
+
+DWORD Config::getStartOnWindows(DWORD gpuId)
+{
 	DWORD pszValue = 0;
-	getValue(currentGpu, L"StartOnWindows", pszValue);
+	getValue(gpuId, L"StartOnWindows", pszValue);
 	return pszValue;
 }
 
 void Config::setStartOnWindows(DWORD pszValue)
 {
-	setValue(currentGpu, L"StartOnWindows", pszValue);
+	setValue(currentGpuId, L"StartOnWindows", pszValue);
 }
 
 bool Config::getValue(LPCTSTR pszValueName, LPTSTR pszValue)
