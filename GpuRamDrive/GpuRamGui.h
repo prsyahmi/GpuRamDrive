@@ -51,7 +51,7 @@ private:
 	void OnEndSession();
 	void OnResize(WORD width, WORD height, bool minimized);
 	void ReloadDriveLetterList();
-	boolean isMounted();
+	boolean IsMounted();
 	void RestoreGuiParams(DWORD gpuId, DWORD suggestedRamSize);
 	void SaveGuiParams(DWORD gpuId);
 	void OnMountClicked();

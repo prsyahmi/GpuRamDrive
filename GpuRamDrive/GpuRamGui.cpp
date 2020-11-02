@@ -125,7 +125,10 @@ void GpuRamGui::AutoMount()
 		{
 			RestoreGuiParams(gpuId, 256);
 			if (config.getStartOnWindows() == 1)
+			{
 				OnMountClicked();
+				m_Tray.SetTooltip(wszAppName, true);
+			}
 		}
 	}
 }
@@ -243,7 +246,7 @@ void GpuRamGui::OnCreate()
 	RestoreGuiParams(config.getGpuList(), suggestedRamSize);
 
 	m_Tray.CreateIcon(m_hWnd, m_Icon, m_IconMounted, SWM_TRAYINTERACTION);
-	m_Tray.SetTooltip(wszAppName, false);
+	m_Tray.SetTooltip(wszAppName, m_AutoMount);
 
 	m_UpdateState = true;
 
@@ -264,7 +267,7 @@ void GpuRamGui::ReloadDriveLetterList()
 	ComboBox_SetCurSel(m_CtlDriveLetter, config.getDriveLetter());
 }
 
-boolean GpuRamGui::isMounted()
+boolean GpuRamGui::IsMounted()
 {
 	boolean isMounted = false;
 	int gpuSize = m_RamDrive[0].GetGpuDevices().size();
@@ -281,7 +284,6 @@ boolean GpuRamGui::isMounted()
 void GpuRamGui::RestoreGuiParams(DWORD gpuId, DWORD suggestedRamSize)
 {
 	config.setGpuList(gpuId);
-	m_Tray.SetTooltip(wszAppName, config.getDriveLetter());
 
 	ComboBox_SetCurSel(m_CtlGpuList, gpuId);
 	ComboBox_SetCurSel(m_CtlDriveLetter, config.getDriveLetter());
@@ -341,9 +343,7 @@ void GpuRamGui::OnDestroy()
 	for (int gpuId = 0; gpuId < size; gpuId++)
 	{
 		if (m_RamDrive[gpuId].IsMounted())
-		{
 			m_RamDrive[gpuId].ImdiskUnmountDevice();
-		}
 	}
 	PostQuitMessage(0);
 }
@@ -358,7 +358,7 @@ void GpuRamGui::OnResize(WORD width, WORD height, bool minimized)
 	MoveWindow(m_CtlGpuList, 150, 10, width - 150 - 20, 20, TRUE);
 	MoveWindow(m_CtlMountBtn, width / 2 - 150, height - 90, 300, 70, TRUE);
 
-	if (m_RamDrive[config.getGpuList()].IsMounted() && minimized) {
+	if (IsMounted() && minimized) {
 		ShowWindow(m_hWnd, SW_HIDE);
 	}
 }
@@ -520,7 +520,7 @@ void GpuRamGui::UpdateState()
 
 	m_UpdateState = false;
 
-	if (isMounted())
+	if (IsMounted())
 	{
 		SendMessage(m_hWnd, WM_SETICON, ICON_SMALL, (LPARAM)m_IconMounted);
 		SendMessage(m_hWnd, WM_SETICON, ICON_BIG, (LPARAM)m_IconMounted);
@@ -579,7 +579,7 @@ LRESULT CALLBACK GpuRamGui::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 		}
 		case WM_CLOSE:
 		{
-			if (_this->isMounted())
+			if (_this->IsMounted())
 			{
 				if (MessageBox(hWnd, L"The drive is mounted, do you really want to exit?", _this->wszAppName, MB_OKCANCEL) == IDOK)
 					DestroyWindow(hWnd);
@@ -629,7 +629,6 @@ LRESULT CALLBACK GpuRamGui::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 					(HANDLE)lParam == _this->m_CtlDriveType) {
 					if (HIWORD(wParam) == CBN_SELCHANGE) {
 						_this->SaveGuiParams(_this->config.getGpuList());
-						_this->m_Tray.SetTooltip(_this->wszAppName, _this->config.getDriveLetter());
 					}
 				}
 
