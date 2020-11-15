@@ -30,8 +30,9 @@ private:
 	HWND m_CtlReadOnly;
 	HWND m_CtlTempFolder;
 	HWND m_CtlStartOnWindows;
-	HWND m_CtlAddBtn;
-	HWND m_CtlRemoveBtn;
+	HWND m_CtlAddDeviceBtn;
+	HWND m_CtlModifyDeviceBtn;
+	HWND m_CtlRemoveDeviceBtn;
 	bool m_UpdateState;
 
 	LPCWSTR wszAppName;
@@ -57,9 +58,9 @@ private:
 	void OnResize(WORD width, WORD height, bool minimized);
 	void ReloadDriveLetterList();
 	boolean IsMounted();
-	void RestoreGuiParams(DWORD gpuId, DWORD suggestedRamSize);
-	void SaveGuiParams(DWORD gpuId);
-	void RemoveDevice();
+	void RestoreGuiParams(DWORD deviceId, DWORD suggestedRamSize);
+	void SaveGuiParams();
+	void RemoveDevice(DWORD deviceId);
 	void OnMountClicked();
 	void OnTrayInteraction(LPARAM lParam);
 	void UpdateState();

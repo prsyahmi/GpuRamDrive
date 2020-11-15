@@ -11,6 +11,7 @@ private:
 	CDataGrid m_hdataGrid;
 
 private:
+	void add(Config config, DWORD deviceId);
 	void setRowColor(DWORD deviceId);
 
 public:
@@ -20,6 +21,6 @@ public:
 	void create(HWND hwnd, RECT rect);
 	HWND getDataGridHandler();
 	void sendWinProcEvent(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam);
-	void add(Config config, DWORD deviceId);
-	void remove(Config config, DWORD deviceId);
+	void reload(Config config);
+	DWORD getSelectedDeviceId();
 };

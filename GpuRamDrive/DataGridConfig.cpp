@@ -20,7 +20,7 @@ void DataGridConfig::create(HWND hwnd, RECT rect)
 	m_hdataGrid.SetColumnInfo(4, L"Label", 100, DGTA_CENTER);
 	m_hdataGrid.SetColumnInfo(5, L"Temp", 70, DGTA_CENTER);
 	m_hdataGrid.SetColumnInfo(6, L"Start", 70, DGTA_CENTER);
-	m_hdataGrid.SetColumnInfo(7, L"Mount", 80, DGTA_CENTER);
+	m_hdataGrid.SetColumnInfo(7, L"Image", 80, DGTA_CENTER);
 
 	ShowScrollBar(m_hdataGrid.GetWindowHandle(), SB_BOTH, FALSE );
 
@@ -79,21 +79,35 @@ void DataGridConfig::add(Config config, DWORD deviceId)
 		m_hdataGrid.SetItemInfo(rowNumber, 6, L"True", DGTA_CENTER, true);
 	else
 		m_hdataGrid.SetItemInfo(rowNumber, 6, L"False", DGTA_CENTER, true);
+	
+	config.getImageFile(szItem);
+	if (wcslen(szItem) > 0)
+		m_hdataGrid.SetItemInfo(rowNumber, 7, L"True", DGTA_CENTER, true);
+	else
+		m_hdataGrid.SetItemInfo(rowNumber, 7, L"False", DGTA_CENTER, true);
 
-	m_hdataGrid.SetItemInfo(rowNumber, 7, L"Mount", DGTA_CENTER, true);
-
-	setRowColor(rowNumber);
+	//setRowColor(rowNumber);
+	m_hdataGrid.Update();
 }
 
-void DataGridConfig::remove(Config config, DWORD deviceId)
+void DataGridConfig::reload(Config config)
 {
-	config.deleteDevice(deviceId);
 	m_hdataGrid.RemoveAllItems();
 	auto v = config.getDeviceList();
 	for (int i = 0; i < v.size(); i++)
 	{
 		add(config, v.at(i));
 	}
+	m_hdataGrid.ResetSelectedRow();
+}
+
+DWORD DataGridConfig::getSelectedDeviceId()
+{
+	int row = m_hdataGrid.GetSelectedRow();
+	if (row >= 0)
+	{
+		return (DWORD)m_hdataGrid.GetItemData(row);
+	} return (DWORD)-1;
 }
 
 void DataGridConfig::setRowColor(DWORD deviceId) {
