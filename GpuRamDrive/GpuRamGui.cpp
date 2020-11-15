@@ -66,11 +66,14 @@ GpuRamGui::GpuRamGui()
 	, m_CtlReadOnly(NULL)
 	, m_CtlTempFolder(NULL)
 	, m_CtlStartOnWindows(NULL)
+	, m_CtlAddBtn(NULL)
+	, m_CtlRemoveBtn(NULL)
 	, m_UpdateState(false)
 	, wszAppName(L"GpuRamDrive")
 	, wszTaskJobName(L"GPURAMDRIVE Task")
-	, config(wszAppName)
 	, diskUtil()
+	, config(wszAppName)
+	, dataGridConfig()
 {
 	INITCOMMONCONTROLSEX c;
 	c.dwSize = sizeof(c);
@@ -93,7 +96,7 @@ bool GpuRamGui::Create(HINSTANCE hInst, const std::wstring& title, int nCmdShow,
 	MyRegisterClass();
 
 	m_hWnd = CreateWindowW(GPU_GUI_CLASS, title.c_str(), WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT, 0, 700, 320, nullptr, nullptr, m_Instance, this);
+		CW_USEDEFAULT, 0, 700, 520, nullptr, nullptr, m_Instance, this);
 
 	if (!m_hWnd) return false;
 
@@ -159,6 +162,9 @@ void GpuRamGui::OnCreate()
 	hStatic = CreateWindow(L"STATIC", L"Image File:", WS_CHILD | WS_VISIBLE | SS_NOPREFIX, 10, 133, 140, 20, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(hStatic, WM_SETFONT, (WPARAM)FontNormal, TRUE);
 
+	hStatic = CreateWindow(L"STATIC", L"Other options:", WS_CHILD | WS_VISIBLE | SS_NOPREFIX, 10, 173, 140, 20, m_hWnd, NULL, m_Instance, NULL);
+	SendMessage(hStatic, WM_SETFONT, (WPARAM)FontNormal, TRUE);
+
 	m_CtlGpuList = CreateWindow(L"COMBOBOX", NULL, WS_CHILD | WS_VISIBLE | WS_TABSTOP | CBS_DROPDOWNLIST, 150, 10, 150, 25, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(m_CtlGpuList, WM_SETFONT, (WPARAM)FontNormal, TRUE);
 
@@ -187,19 +193,28 @@ void GpuRamGui::OnCreate()
 	SendMessage(m_CtlImageFile, EM_SETCUEBANNER, 0, LPARAM(L"Image file"));
 
 	m_CtlChooseFileBtn = CreateWindow(L"BUTTON", L"...", WS_CHILD | WS_VISIBLE | WS_TABSTOP, 480, 130, 25, 28, m_hWnd, NULL, m_Instance, NULL);
-	SendMessage(m_CtlChooseFileBtn, WM_SETFONT, (WPARAM)FontBold, TRUE);
+	SendMessage(m_CtlChooseFileBtn, WM_SETFONT, (WPARAM)FontNormal, TRUE);
 
 	m_CtlReadOnly = CreateWindow(L"BUTTON", L"Read only", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_CHECKBOX, 515, 132, 154, 25, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(m_CtlReadOnly, WM_SETFONT, (WPARAM)FontNormal, TRUE);
 
-	m_CtlTempFolder = CreateWindow(L"BUTTON", L"Create TEMP Folder", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_CHECKBOX, 515, 180, 154, 25, m_hWnd, NULL, m_Instance, NULL);
+	m_CtlTempFolder = CreateWindow(L"BUTTON", L"Create TEMP Folder", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_CHECKBOX, 150, 170, 154, 25, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(m_CtlTempFolder, WM_SETFONT, (WPARAM)FontNormal, TRUE);
 
-	m_CtlStartOnWindows = CreateWindow(L"BUTTON", L"Start on windows", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_CHECKBOX, 515, 220, 154, 25, m_hWnd, NULL, m_Instance, NULL);
+	m_CtlStartOnWindows = CreateWindow(L"BUTTON", L"Start on windows", WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_CHECKBOX, 315, 170, 154, 25, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(m_CtlStartOnWindows, WM_SETFONT, (WPARAM)FontNormal, TRUE);
 
-	m_CtlMountBtn = CreateWindow(L"BUTTON", L"Mount", WS_CHILD | WS_VISIBLE | WS_TABSTOP, 150, 190, 150, 40, m_hWnd, NULL, m_Instance, NULL);
+	m_CtlAddBtn = CreateWindow(L"BUTTON", L"Add Drive", WS_CHILD | WS_VISIBLE | WS_TABSTOP, 10, 210, 150, 28, m_hWnd, NULL, m_Instance, NULL);
+	SendMessage(m_CtlAddBtn, WM_SETFONT, (WPARAM)FontNormal, TRUE);
+
+	m_CtlRemoveBtn = CreateWindow(L"BUTTON", L"Remove Drive", WS_CHILD | WS_VISIBLE | WS_TABSTOP, 515, 210, 150, 28, m_hWnd, NULL, m_Instance, NULL);
+	SendMessage(m_CtlRemoveBtn, WM_SETFONT, (WPARAM)FontNormal, TRUE);
+
+	m_CtlMountBtn = CreateWindow(L"BUTTON", L"Mount", WS_CHILD | WS_VISIBLE | WS_TABSTOP, 250, 190, 150, 40, m_hWnd, NULL, m_Instance, NULL);
 	SendMessage(m_CtlMountBtn, WM_SETFONT, (WPARAM)FontBold, TRUE);
+
+	RECT rect = { 10, 240, 10 + 655, 240 + 140 };
+	dataGridConfig.create(m_hWnd, rect);
 
 	ReloadDriveLetterList();
 
@@ -233,17 +248,27 @@ void GpuRamGui::OnCreate()
 				});
 		}
 
-		if (config.getGpuList() >= index)
+		if (config.getCurrentDeviceId() >= index)
 		{
-			config.setGpuList(0);
+			config.setCurrentDeviceId(0);
+		}
+
+		auto devices = config.getDeviceList();
+		for (int i = 0; i < devices.size(); i++)
+		{
+			dataGridConfig.add(config, devices.at(i));
+		}
+		if (devices.size() > 0) {
+			RestoreGuiParams(devices.at(0), suggestedRamSize);
+		}
+		else {
+			RestoreGuiParams('R' - 'A', suggestedRamSize);
 		}
 	}
 	catch (const std::exception& ex)
 	{
 		ComboBox_AddString(m_CtlGpuList, ToWide(ex.what()).c_str());
 	}
-
-	RestoreGuiParams(config.getGpuList(), suggestedRamSize);
 
 	m_Tray.CreateIcon(m_hWnd, m_Icon, m_IconMounted, SWM_TRAYINTERACTION);
 	m_Tray.SetTooltip(wszAppName, m_AutoMount);
@@ -281,11 +306,10 @@ boolean GpuRamGui::IsMounted()
 	return isMounted;
 }
 
-void GpuRamGui::RestoreGuiParams(DWORD gpuId, DWORD suggestedRamSize)
+void GpuRamGui::RestoreGuiParams(DWORD deviceId, DWORD suggestedRamSize)
 {
-	config.setGpuList(gpuId);
-
-	ComboBox_SetCurSel(m_CtlGpuList, gpuId);
+	config.setCurrentDeviceId(deviceId);
+	ComboBox_SetCurSel(m_CtlGpuList, config.getGpuId());
 	ComboBox_SetCurSel(m_CtlDriveLetter, config.getDriveLetter());
 	ComboBox_SetCurSel(m_CtlDriveType, config.getDriveType());
 	ComboBox_SetCurSel(m_CtlDriveRemovable, config.getDriveRemovable());
@@ -314,9 +338,10 @@ void GpuRamGui::RestoreGuiParams(DWORD gpuId, DWORD suggestedRamSize)
 	UpdateState();
 }
 
-void GpuRamGui::SaveGuiParams(DWORD gpuId)
+void GpuRamGui::SaveGuiParams(DWORD deviceId)
 {
-	config.setGpuList(gpuId);
+	config.setCurrentDeviceId(ComboBox_GetCurSel(m_CtlDriveLetter));
+	config.setGpuId(ComboBox_GetCurSel(m_CtlGpuList));
 	config.setDriveLetter(ComboBox_GetCurSel(m_CtlDriveLetter));
 	config.setDriveType(ComboBox_GetCurSel(m_CtlDriveType));
 	config.setDriveRemovable(ComboBox_GetCurSel(m_CtlDriveRemovable));
@@ -335,6 +360,13 @@ void GpuRamGui::SaveGuiParams(DWORD gpuId)
 
 	Edit_GetText(m_CtlImageFile, szTemp, sizeof(szTemp) / sizeof(wchar_t));
 	config.setImageFile(szTemp);
+
+	dataGridConfig.add(config, ComboBox_GetCurSel(m_CtlDriveLetter));
+}
+
+void GpuRamGui::RemoveDevice()
+{
+	dataGridConfig.remove(config, ComboBox_GetCurSel(m_CtlDriveLetter));
 }
 
 void GpuRamGui::OnDestroy()
@@ -411,9 +443,9 @@ void GpuRamGui::OnMountClicked()
 
 		try
 		{
-			m_RamDrive[config.getGpuList()].SetDriveType(driveType);
-			m_RamDrive[config.getGpuList()].SetRemovable(driveRemovable);
-			m_RamDrive[config.getGpuList()].CreateRamDevice(vGpu[gpuId].platform_id, vGpu[gpuId].device_id, L"GpuRamDev_ " + std::to_wstring(mountPointParam[0]), memSize, mountPointParam, formatParam, labelParam, tempFolderParam);
+			m_RamDrive[config.getCurrentDeviceId()].SetDriveType(driveType);
+			m_RamDrive[config.getCurrentDeviceId()].SetRemovable(driveRemovable);
+			m_RamDrive[config.getCurrentDeviceId()].CreateRamDevice(vGpu[gpuId].platform_id, vGpu[gpuId].device_id, L"GpuRamDev_ " + std::to_wstring(mountPointParam[0]), memSize, mountPointParam, formatParam, labelParam, tempFolderParam);
 
 			try
 			{
@@ -485,7 +517,7 @@ void GpuRamGui::UpdateState()
 {
 	if (!m_UpdateState) return;
 
-	if (m_RamDrive[config.getGpuList()].IsMounted())
+	if (m_RamDrive[config.getCurrentDeviceId()].IsMounted())
 	{
 		//EnableWindow(m_CtlGpuList, FALSE);
 		EnableWindow(m_CtlDriveLetter, FALSE);
@@ -622,44 +654,44 @@ LRESULT CALLBACK GpuRamGui::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 
 		case WM_COMMAND:
 			if (_this) {
-				if ((HANDLE)lParam == _this->m_CtlGpuList ||
-					(HANDLE)lParam == _this->m_CtlDriveLetter ||
-					(HANDLE)lParam == _this->m_CtlDriveFormat ||
-					(HANDLE)lParam == _this->m_CtlDriveRemovable ||
-					(HANDLE)lParam == _this->m_CtlDriveType) {
-					if (HIWORD(wParam) == CBN_SELCHANGE) {
-						_this->SaveGuiParams(_this->config.getGpuList());
-					}
+				if ((HANDLE)lParam == _this->dataGridConfig.getDataGridHandler()) {
+					_this->dataGridConfig.sendWinProcEvent(hWnd, message, wParam, lParam);
+					_this->dataGridConfig.
 				}
-
+				
 				if ((HANDLE)lParam == _this->m_CtlMountBtn) {
 					EnableWindow(_this->m_CtlMountBtn, FALSE);
 					_this->OnMountClicked();
 					EnableWindow(_this->m_CtlMountBtn, TRUE);
 				}
-				else if ((HANDLE)lParam == _this->m_CtlGpuList) {
+				else if ((HANDLE)lParam == _this->m_CtlDriveLetter) {
 					if (HIWORD(wParam) == CBN_SELCHANGE) {
-						LRESULT itemIndex = SendMessage((HWND)lParam, (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
-
-						TGPUDevice it = _this->m_RamDrive[0].GetGpuDevices().at(itemIndex);
+						LRESULT letterIndex = SendMessage((HWND)_this->m_CtlDriveLetter, (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
+						LRESULT gpuIndex = SendMessage((HWND)_this->m_CtlGpuList, (UINT)CB_GETCURSEL, (WPARAM)0, (LPARAM)0);
+						TGPUDevice it = _this->m_RamDrive[0].GetGpuDevices().at(gpuIndex);
 #if GPU_API == GPU_API_HOSTMEM
 						int suggestedRamSize = 256;
 #else
 						int suggestedRamSize = (int)((it.memsize / 1024 / 1024) - 1024);
 #endif
-						_this->RestoreGuiParams(itemIndex, suggestedRamSize);
-						_this->ReloadDriveLetterList();
+						_this->RestoreGuiParams(letterIndex, suggestedRamSize);
 					}
+				}
+				if ((HANDLE)lParam == _this->m_CtlAddBtn) {
+					_this->SaveGuiParams(0);
+				}
+				if ((HANDLE)lParam == _this->m_CtlRemoveBtn) {
+					_this->RemoveDevice();
 				}
 				else if ((HANDLE)lParam == _this->m_CtlReadOnly) {
 					BOOL checked = Button_GetCheck(_this->m_CtlReadOnly);
 					Button_SetCheck(_this->m_CtlReadOnly, !checked);
-					_this->SaveGuiParams(_this->config.getGpuList());
+					_this->SaveGuiParams(_this->config.getCurrentDeviceId());
 				}
 				else if ((HANDLE)lParam == _this->m_CtlTempFolder) {
 					BOOL checked = Button_GetCheck(_this->m_CtlTempFolder);
 					Button_SetCheck(_this->m_CtlTempFolder, !checked);
-					_this->SaveGuiParams(_this->config.getGpuList());
+					_this->SaveGuiParams(_this->config.getCurrentDeviceId());
 
 					if (!checked) {
 						_this->config.saveOriginalTempEnvironment();
@@ -668,7 +700,7 @@ LRESULT CALLBACK GpuRamGui::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 				else if ((HANDLE)lParam == _this->m_CtlStartOnWindows) {
 					BOOL checked = Button_GetCheck(_this->m_CtlStartOnWindows);
 					Button_SetCheck(_this->m_CtlStartOnWindows, !checked);
-					_this->SaveGuiParams(_this->config.getGpuList());
+					_this->SaveGuiParams(_this->config.getCurrentDeviceId());
 
 					TaskManager taskManager;
 					if (checked) {
@@ -686,19 +718,11 @@ LRESULT CALLBACK GpuRamGui::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 						}
 					}
 				}
-				else if ((HANDLE)lParam == _this->m_CtlDriveLabel || (HANDLE)lParam == _this->m_CtlImageFile || (HANDLE)lParam == _this->m_CtlMemSize) {
-					if (HIWORD(wParam) == EN_KILLFOCUS) {
-						_this->SaveGuiParams(_this->config.getGpuList());
-					}
-					else {
-						return DefWindowProc(hWnd, message, wParam, lParam);
-					}
-				}
 				else if ((HANDLE)lParam == _this->m_CtlChooseFileBtn) {
 					std::wstring file = _this->diskUtil.chooserFile(L"Select the image file", L"(*.img) Image file\0*.img\0");
 					if (file.length() > 0) {
 						Edit_SetText(_this->m_CtlImageFile, file.c_str());
-						_this->SaveGuiParams(_this->config.getGpuList());
+						_this->SaveGuiParams(_this->config.getCurrentDeviceId());
 					}
 				}
 				else {

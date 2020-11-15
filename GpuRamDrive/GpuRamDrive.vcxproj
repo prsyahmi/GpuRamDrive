@@ -386,6 +386,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Config.h" />
+    <ClInclude Include="DataGrid.h" />
+    <ClInclude Include="DataGridConfig.h" />
     <ClInclude Include="DiskUtil.h" />
     <ClInclude Include="GpuRamDrive.h" />
     <ClInclude Include="GpuRamGui.h" />
@@ -398,6 +400,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Config.cpp" />
+    <ClCompile Include="DataGrid.cpp" />
+    <ClCompile Include="DataGridConfig.cpp" />
     <ClCompile Include="DiskUtil.cpp" />
     <ClCompile Include="EntryPoint.cpp" />
     <ClCompile Include="GpuRamDrive.cpp" />
