@@ -30,12 +30,18 @@ void Config::checkVersion()
 
 const std::vector<DWORD>& Config::getDeviceList()
 {
+	vectorDevices.clear();
 	for (int c = 0; c <= 'Z' - 'A'; c++)
 	{
 		if (existValue(c, L"DriveLetter"))
 			vectorDevices.push_back(c);
 	}
 	return vectorDevices;
+}
+
+BOOL Config::existDevice(DWORD deviceId)
+{
+	return existValue(deviceId, L"DriveLetter");
 }
 
 void Config::saveOriginalTempEnvironment()

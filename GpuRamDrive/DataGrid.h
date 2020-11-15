@@ -255,6 +255,8 @@ public:
     int GetRowNumber();
     int GetSelectedRow();
     int GetSelectedColumn();
+    void ResetSelectedRow();
+    void ResetSelectedColumn();
     void SetCompareFunction(DGCOMPARE CompareFunction);
 
     /* DataGrid SET attribute methods */

@@ -2095,6 +2095,24 @@ int CDataGrid::GetSelectedColumn()
     return result;
 }
 
+void CDataGrid::ResetSelectedRow()
+{
+    DG_LIST* dgList = GetDGGrid(m_hWnd);
+    if (dgList != NULL)
+    {
+        dgList->dg_SelectedRow = -1;
+    }
+}
+
+
+void CDataGrid::ResetSelectedColumn()
+{
+    DG_LIST* dgList = GetDGGrid(m_hWnd);
+    if (dgList != NULL)
+    {
+        dgList->dg_SelectedColumn = -1;
+    }
+}
 
 void CDataGrid::Update()
 {

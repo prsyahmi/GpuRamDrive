@@ -39,6 +39,8 @@ public:
 	~Config();
 
 	const std::vector<DWORD>& getDeviceList();
+	BOOL existDevice(DWORD deviceId);
+
 	void saveOriginalTempEnvironment();
 	void setMountTempEnvironment(LPCTSTR pszValue);
 	void restoreOriginalTempEnvironment();
