@@ -48,6 +48,12 @@
     <ClInclude Include="DiskUtil.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="DataGrid.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DataGridConfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -75,6 +81,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="DiskUtil.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DataGrid.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DataGridConfig.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

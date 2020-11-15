@@ -1,13 +1,15 @@
 #pragma once
 #include <map>
+#include "GpuRamDrive.h"
 #include "GpuRamTrayIcon.h"
+#include "DiskUtil.h"
 #include "Config.h"
-
+#include "DataGridConfig.h"
 
 class GpuRamGui
 {
 private:
-	std::map<DWORD,GPURamDrive> m_RamDrive;
+	std::map<DWORD, GPURamDrive> m_RamDrive;
 	HWND m_hWnd;
 	HINSTANCE m_Instance;
 	GpuRamTrayIcon m_Tray;
@@ -28,13 +30,16 @@ private:
 	HWND m_CtlReadOnly;
 	HWND m_CtlTempFolder;
 	HWND m_CtlStartOnWindows;
+	HWND m_CtlAddBtn;
+	HWND m_CtlRemoveBtn;
 	bool m_UpdateState;
 
 	LPCWSTR wszAppName;
 	LPCWSTR wszTaskJobName;
 
-	Config config;
 	DiskUtil diskUtil;
+	Config config;
+	DataGridConfig dataGridConfig;
 
 public:
 	GpuRamGui();
@@ -54,6 +59,7 @@ private:
 	boolean IsMounted();
 	void RestoreGuiParams(DWORD gpuId, DWORD suggestedRamSize);
 	void SaveGuiParams(DWORD gpuId);
+	void RemoveDevice();
 	void OnMountClicked();
 	void OnTrayInteraction(LPARAM lParam);
 	void UpdateState();

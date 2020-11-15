@@ -9,9 +9,14 @@ class Config
 private:
 	xfc::RegKey obKey;
 	LPTSTR pszKeyName;
-	DWORD currentGpuId;
+	DWORD currentDeviceId;
+	DWORD version;
+	std::vector<DWORD> vectorDevices;
 
 private:
+	void checkVersion();
+	void migrateVersion100();
+
 	bool getValue(LPCTSTR pszValueName, LPTSTR pszValue);
 	bool getValue(DWORD gpu, LPCTSTR pszValueName, LPTSTR pszValue);
 
@@ -27,20 +32,23 @@ private:
 	bool existValue(LPCTSTR pszValueName);
 	bool existValue(DWORD gpu, LPCTSTR pszValueName);
 
-	bool deleteValue(DWORD gpu, LPCTSTR pszValueName);
+	bool deleteValue(LPCTSTR pszValueName);
 
 public:
 	Config(LPCTSTR pszKeyName);
 	~Config();
 
-	void deleteAllConfig(DWORD gpu);
-
+	const std::vector<DWORD>& getDeviceList();
 	void saveOriginalTempEnvironment();
 	void setMountTempEnvironment(LPCTSTR pszValue);
 	void restoreOriginalTempEnvironment();
 
-	DWORD getGpuList();
-	void setGpuList(DWORD pszValue);
+	DWORD getCurrentDeviceId();
+	void setCurrentDeviceId(DWORD pszValue);
+
+	DWORD getGpuId();
+	DWORD getGpuId(DWORD gpuId);
+	void setGpuId(DWORD pszValue);
 
 	DWORD getDriveLetter();
 	DWORD getDriveLetter(DWORD gpuId);
@@ -73,4 +81,6 @@ public:
 	DWORD getStartOnWindows();
 	DWORD getStartOnWindows(DWORD gpuId);
 	void setStartOnWindows(DWORD pszValue);
+
+	bool deleteDevice(DWORD deviceId);
 };
