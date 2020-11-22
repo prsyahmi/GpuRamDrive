@@ -40,6 +40,7 @@ public:
 
 	const std::vector<DWORD>& getDeviceList();
 	BOOL existDevice(DWORD deviceId);
+	DWORD getDeviceTempFolfer();
 
 	void saveOriginalTempEnvironment();
 	void setMountTempEnvironment(LPCTSTR pszValue);
@@ -53,7 +54,7 @@ public:
 	void setGpuId(DWORD pszValue);
 
 	DWORD getDriveLetter();
-	DWORD getDriveLetter(DWORD gpuId);
+	DWORD getDriveLetter(DWORD deviceId);
 	void setDriveLetter(DWORD pszValue);
 
 	DWORD getDriveType();
@@ -78,10 +79,11 @@ public:
 	void setReadOnly(DWORD pszValue);
 
 	DWORD getTempFolder();
+	DWORD getTempFolder(DWORD deviceId);
 	void setTempFolder(DWORD pszValue);
 
 	DWORD getStartOnWindows();
-	DWORD getStartOnWindows(DWORD gpuId);
+	DWORD getStartOnWindows(DWORD deviceId);
 	void setStartOnWindows(DWORD pszValue);
 
 	bool deleteDevice(DWORD deviceId);

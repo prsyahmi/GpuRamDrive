@@ -75,10 +75,11 @@
 #define DGTA_RIGHT          DT_RIGHT
 #define DGBGR_COLOR         RGB(255,255,255)
 #define DGTXT_COLOR         RGB(0,0,0)
-#define DGRONLY_COLOR       RGB(220,220,220)
+#define DGRONLY_COLOR       RGB(245,245,245)
 
-#define DGSELROWBGR_COLOR         RGB(10,10,200) //  220,230,250
-#define DGSELROWTXT_COLOR         RGB(250,200,200 ) // 130,130,130
+#define DGMOUNTROWBGR_COLOR       RGB(225,45,45)
+#define DGSELROWBGR_COLOR         RGB(45,150,200)
+#define DGSELROWTXT_COLOR         RGB(0,0,0)
 
 /* DataGrid messages */
 #define DGM_ITEMCHANGED          0x0001
@@ -113,6 +114,7 @@ typedef struct _DG_ROW
     TCHAR** rowText;
     int* textAlign;
     bool selected;
+    bool mounted;
     bool* readOnly;
     COLORREF bgColor;
     LPARAM lParam;//SetTtemData   
@@ -255,8 +257,8 @@ public:
     int GetRowNumber();
     int GetSelectedRow();
     int GetSelectedColumn();
-    void ResetSelectedRow();
-    void ResetSelectedColumn();
+    void ResetSelection();
+    void SetRowMount(DWORD deviceId, BOOL value);
     void SetCompareFunction(DGCOMPARE CompareFunction);
 
     /* DataGrid SET attribute methods */
