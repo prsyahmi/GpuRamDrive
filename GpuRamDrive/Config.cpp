@@ -44,6 +44,17 @@ BOOL Config::existDevice(DWORD deviceId)
 	return existValue(deviceId, L"DriveLetter");
 }
 
+DWORD Config::getDeviceTempFolfer()
+{
+	auto v = getDeviceList();
+	for (int i = 0; i < v.size(); i++)
+	{
+		if (getTempFolder(v.at(i)))
+			return v.at(i);
+	}
+	return -1;
+}
+
 void Config::saveOriginalTempEnvironment()
 {
 	if (!existValue(L"OriginalTemp") || !existValue(L"OriginalTmp")) {
@@ -220,6 +231,13 @@ DWORD Config::getTempFolder()
 	return pszValue;
 }
 
+DWORD Config::getTempFolder(DWORD deviceId)
+{
+	DWORD pszValue = 0;
+	getValue(deviceId, L"TempFolder", pszValue);
+	return pszValue;
+}
+
 void Config::setTempFolder(DWORD pszValue)
 {
 	setValue(currentDeviceId, L"TempFolder", pszValue);
@@ -230,10 +248,10 @@ DWORD Config::getStartOnWindows()
 	return getStartOnWindows(currentDeviceId);
 }
 
-DWORD Config::getStartOnWindows(DWORD gpuId)
+DWORD Config::getStartOnWindows(DWORD deviceId)
 {
 	DWORD pszValue = 0;
-	getValue(gpuId, L"StartOnWindows", pszValue);
+	getValue(deviceId, L"StartOnWindows", pszValue);
 	return pszValue;
 }
 

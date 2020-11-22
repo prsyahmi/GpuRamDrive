@@ -47,6 +47,7 @@ public:
 	~GpuRamGui();
 
 	bool Create(HINSTANCE hInst, const std::wstring& title, int nCmdShow, bool autoMount);
+	bool CreateTryIcon();
 	int Loop();
 	void AutoMount();
 	void RestoreWindow();
@@ -57,11 +58,12 @@ private:
 	void OnEndSession();
 	void OnResize(WORD width, WORD height, bool minimized);
 	void ReloadDriveLetterList();
-	boolean IsMounted();
+	boolean IsAnyMounted();
 	void RestoreGuiParams(DWORD deviceId, DWORD suggestedRamSize);
 	void SaveGuiParams();
 	void RemoveDevice(DWORD deviceId);
-	void OnMountClicked();
+	void SetStartOnWindows();
+	void OnMountClicked(DWORD deviceId);
 	void OnTrayInteraction(LPARAM lParam);
 	void UpdateState();
 

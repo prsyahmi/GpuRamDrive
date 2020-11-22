@@ -17,7 +17,7 @@ void DataGridConfig::create(HWND hwnd, RECT rect)
 	m_hdataGrid.SetColumnInfo(1, L"GpuId", 70, DGTA_CENTER);
 	m_hdataGrid.SetColumnInfo(2, L"Format", 80, DGTA_CENTER);
 	m_hdataGrid.SetColumnInfo(3, L"MemSize", 100, DGTA_CENTER);
-	m_hdataGrid.SetColumnInfo(4, L"Label", 100, DGTA_CENTER);
+	m_hdataGrid.SetColumnInfo(4, L"Label", 110, DGTA_CENTER);
 	m_hdataGrid.SetColumnInfo(5, L"Temp", 70, DGTA_CENTER);
 	m_hdataGrid.SetColumnInfo(6, L"Start", 70, DGTA_CENTER);
 	m_hdataGrid.SetColumnInfo(7, L"Image", 80, DGTA_CENTER);
@@ -44,7 +44,7 @@ void DataGridConfig::sendWinProcEvent(HWND hWnd, UINT message, WPARAM wParam, LP
 	m_hdataGrid.SubEditProc(hWnd, message, wParam, lParam);
 }
 
-void DataGridConfig::add(Config config, DWORD deviceId)
+void DataGridConfig::add(Config config, DWORD deviceId, bool isMounted)
 {
 	int rowNumber = m_hdataGrid.GetRowNumber();
 	config.setCurrentDeviceId(deviceId);
@@ -86,44 +86,36 @@ void DataGridConfig::add(Config config, DWORD deviceId)
 	else
 		m_hdataGrid.SetItemInfo(rowNumber, 7, L"False", DGTA_CENTER, true);
 
-	//setRowColor(rowNumber);
+	setRowMount(deviceId, isMounted);
 	m_hdataGrid.Update();
 }
 
-void DataGridConfig::reload(Config config)
+void DataGridConfig::reload(Config config, std::map<DWORD, GPURamDrive>& m_RamDrive)
 {
 	m_hdataGrid.RemoveAllItems();
-	auto v = config.getDeviceList();
-	for (int i = 0; i < v.size(); i++)
+	auto devices = config.getDeviceList();
+	for (int i = 0; i < devices.size(); i++)
 	{
-		add(config, v.at(i));
+		add(config, devices.at(i), m_RamDrive[devices.at(i)].IsMounted());
 	}
-	m_hdataGrid.ResetSelectedRow();
+	resetSelection();
 }
 
 DWORD DataGridConfig::getSelectedDeviceId()
 {
 	int row = m_hdataGrid.GetSelectedRow();
 	if (row >= 0)
-	{
 		return (DWORD)m_hdataGrid.GetItemData(row);
-	} return (DWORD)-1;
+	return (DWORD)-1;
 }
 
-void DataGridConfig::setRowColor(DWORD deviceId) {
-	int iLeft = deviceId % 3;
-	switch (iLeft)
-	{
-	case 0:
-		m_hdataGrid.SetItemBgColor(deviceId, RGB(250, 220, 220));
-		m_hdataGrid.SetItemBgColor(deviceId, RGB(220, 250, 220));
-		break;
-	case 1:
-		m_hdataGrid.SetItemBgColor(deviceId, RGB(220, 250, 220));
-		break;
-	case 2:
-		m_hdataGrid.SetItemBgColor(deviceId, RGB(250, 250, 220));
-		break;
-	}
+void DataGridConfig::setRowMount(DWORD deviceId, BOOL value)
+{
+	m_hdataGrid.SetRowMount(deviceId, value);
+}
+
+void DataGridConfig::resetSelection()
+{
+	m_hdataGrid.ResetSelection();
 	m_hdataGrid.Update();
 }

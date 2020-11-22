@@ -887,6 +887,7 @@ LRESULT CALLBACK DataGridProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPa
 
     case WM_LBUTTONDBLCLK:
     {
+        /*
         DG_LIST* dgList = GetDGGrid(hwnd);
         if ((dgList != NULL) && (dgList->dg_EnableEdit))
         {
@@ -917,6 +918,7 @@ LRESULT CALLBACK DataGridProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPa
                 }
             }
         }
+        */
     }
     break;
 
@@ -1344,6 +1346,8 @@ void DrawRows(HWND hWnd)
                         hBgBrush = CreateSolidBrush(dgList->dg_Rows[i].bgColor);
                     else
                         hBgBrush = CreateSolidBrush(DGRONLY_COLOR);
+                    if (dgList->dg_Rows[i].mounted == true)
+                        hBgBrush = CreateSolidBrush(DGMOUNTROWBGR_COLOR);
                     HBRUSH hOldBrush = (HBRUSH)SelectObject(hDC, hBgBrush);
                     Rectangle(hDC, rect.left, rect.top, rect.right, rect.bottom);
 
@@ -1598,10 +1602,18 @@ BOOL CheckRows(HWND hWnd, int x, int y, int* row)
     if (dgList->dg_Resize)
         return result;
 
-    // Clear selection
-    dgList->dg_Selected = NULL;
-    dgList->dg_SelectedRow = -1;
-    dgList->dg_SelectedColumn = -1;
+    if (dgList->dg_RowNumber == 0)
+        return false;
+
+    if (dgList->dg_SelectedRow != -1)
+    {
+        // Clear selection
+        dgList->dg_Rows[dgList->dg_SelectedRow].selected = false;
+        dgList->dg_Selected = NULL;
+        dgList->dg_SelectedRow = -1;
+        dgList->dg_SelectedColumn = -1;
+        return true;
+    }
 
     int offsetX = 0, offsetY = 0, offY = 0;
     RECT rect, colRect;
@@ -1888,6 +1900,7 @@ BOOL CDataGrid::InsertItem(TCHAR* itemText, int textAlign, bool readOnly)
                     }
                     _tcscpy(dgList->dg_Rows[i].rowText[0], itemText);
                     dgList->dg_Rows[i].selected = false;
+                    dgList->dg_Rows[i].mounted = false;
                     dgList->dg_Rows[i].bgColor = DGBGR_COLOR;
                     dgList->dg_Rows[i].lParam = -1;
                 }
@@ -1902,6 +1915,7 @@ BOOL CDataGrid::InsertItem(TCHAR* itemText, int textAlign, bool readOnly)
             //}
             _tcscpy(dgList->dg_Rows[dgList->dg_RowNumber - 1].rowText[0], itemText);
             dgList->dg_Rows[dgList->dg_RowNumber - 1].selected = false;
+            dgList->dg_Rows[dgList->dg_RowNumber - 1].mounted = false;
             dgList->dg_Rows[dgList->dg_RowNumber - 1].bgColor = DGBGR_COLOR;
             dgList->dg_Rows[dgList->dg_RowNumber - 1].lParam = -1;
             result = TRUE;
@@ -1972,6 +1986,7 @@ BOOL CDataGrid::RemoveItem(int row)
                     dgList->dg_Rows[i].readOnly[j] = dgList->dg_Rows[iNext].readOnly[j];
                 }
                 dgList->dg_Rows[i].selected = dgList->dg_Rows[iNext].selected;
+                dgList->dg_Rows[i].mounted = dgList->dg_Rows[iNext].mounted;
                 dgList->dg_Rows[i].bgColor = dgList->dg_Rows[iNext].bgColor;
                 dgList->dg_Rows[i].lParam = dgList->dg_Rows[iNext].lParam;
             }
@@ -2020,7 +2035,6 @@ BOOL CDataGrid::RemoveItem(int row)
         (LPARAM)&nmhGrid);
     return result;
 }
-
 
 void CDataGrid::RemoveAllItems()
 {
@@ -2095,22 +2109,34 @@ int CDataGrid::GetSelectedColumn()
     return result;
 }
 
-void CDataGrid::ResetSelectedRow()
+void CDataGrid::ResetSelection()
 {
     DG_LIST* dgList = GetDGGrid(m_hWnd);
     if (dgList != NULL)
     {
-        dgList->dg_SelectedRow = -1;
+        if (dgList->dg_RowNumber > 0 && dgList->dg_SelectedRow != -1)
+        {
+            dgList->dg_Rows[dgList->dg_SelectedRow].selected = false;
+            dgList->dg_Selected = NULL;
+            dgList->dg_SelectedRow = -1;
+            dgList->dg_SelectedColumn = -1;
+        }
     }
 }
 
-
-void CDataGrid::ResetSelectedColumn()
+void CDataGrid::SetRowMount(DWORD deviceId, BOOL value)
 {
     DG_LIST* dgList = GetDGGrid(m_hWnd);
     if (dgList != NULL)
     {
-        dgList->dg_SelectedColumn = -1;
+        for (int i = 0; i < dgList->dg_RowNumber; i++)
+        {
+            if (deviceId == (DWORD)dgList->dg_Rows[i].lParam)
+            {
+                dgList->dg_Rows[i].mounted = value;
+                break;
+            }
+        }
     }
 }
 
