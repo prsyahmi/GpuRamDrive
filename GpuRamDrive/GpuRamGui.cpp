@@ -31,6 +31,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include "resource.h"
 #include "TaskManager.h"
 #include "DiskUtil.h"
+#include "DebugTools.h"
 
 
 #define GPU_GUI_CLASS L"GPURAMDRIVE_CLASS"
@@ -82,11 +83,13 @@ GpuRamGui::GpuRamGui()
 	c.dwICC = 0;
 
 	InitCommonControlsEx(&c);
+	DebugTools::deb(L"Started %s", wszAppName);
 }
 
 
 GpuRamGui::~GpuRamGui()
 {
+	DebugTools::deb(L"Closed %s", wszAppName);
 }
 
 bool GpuRamGui::Create(HINSTANCE hInst, const std::wstring& title, int nCmdShow, bool autoMount)
@@ -416,18 +419,18 @@ void GpuRamGui::SetStartOnWindows()
 
 void GpuRamGui::OnDestroy()
 {
+	OnEndSession();
+	PostQuitMessage(0);
+}
+
+void GpuRamGui::OnEndSession()
+{
 	auto devices = config.getDeviceList();
 	for (int i = 0; i < devices.size(); i++)
 	{
 		if (m_RamDrive[devices.at(i)].IsMounted())
 			m_RamDrive[devices.at(i)].ImdiskUnmountDevice();
 	}
-	PostQuitMessage(0);
-}
-
-void GpuRamGui::OnEndSession()
-{
-	m_RamDrive[0].ImdiskUnmountDevice();
 }
 
 void GpuRamGui::OnResize(WORD width, WORD height, bool minimized)
@@ -492,7 +495,7 @@ void GpuRamGui::OnMountClicked(DWORD deviceId)
 		{
 			m_RamDrive[deviceId].SetDriveType(driveType);
 			m_RamDrive[deviceId].SetRemovable(driveRemovable);
-			m_RamDrive[deviceId].CreateRamDevice(vGpu[gpuId].platform_id, vGpu[gpuId].device_id, L"GpuRamDev_ " + std::to_wstring(mountPointParam[0]), memSize, mountPointParam, formatParam, labelParam, tempFolderParam);
+			m_RamDrive[deviceId].CreateRamDevice(vGpu[gpuId].platform_id, vGpu[gpuId].device_id, L"GpuRamDev_" + std::to_wstring(mountPointParam[0]), memSize, mountPointParam, formatParam, labelParam, tempFolderParam);
 			dataGridConfig.setRowMount(deviceId, true);
 
 			dataGridConfig.resetSelection();
@@ -501,6 +504,7 @@ void GpuRamGui::OnMountClicked(DWORD deviceId)
 				wchar_t szImageFile[MAX_PATH] = { 0 };
 				config.getImageFile(szImageFile);
 				if (wcslen(szImageFile) > 0 && diskUtil.fileExists(szImageFile)) {
+					DebugTools::deb(L"Restoring the image '%s'", szImageFile);
 					wchar_t szDeviceVolumen[MAX_PATH] = { 0 };
 					_snwprintf_s(szDeviceVolumen, sizeof(szDeviceVolumen), L"\\\\.\\%s", mountPointParam);
 					diskUtil.restore(szImageFile, szDeviceVolumen);
@@ -690,7 +694,7 @@ LRESULT CALLBACK GpuRamGui::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 		}
 		case WM_CLOSE:
 		{
-			if (_this->IsAnyMounted())
+			if (!_this->m_AutoMount && _this->IsAnyMounted())
 			{
 				if (MessageBox(hWnd, L"The drive is mounted, do you really want to exit?", _this->wszAppName, MB_OKCANCEL) == IDOK)
 					DestroyWindow(hWnd);
@@ -735,6 +739,9 @@ LRESULT CALLBACK GpuRamGui::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 			{
 				return DefWindowProc(hWnd, message, wParam, lParam);
 			}
+		case SWM_TRAYINTERACTION:
+			if (_this) _this->OnTrayInteraction(lParam);
+			break;
 
 		case WM_COMMAND:
 			if (_this) {
@@ -826,11 +833,6 @@ LRESULT CALLBACK GpuRamGui::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 				}
 			}
 			break;
-
-		case SWM_TRAYINTERACTION:
-			if (_this) _this->OnTrayInteraction(lParam);
-			break;
-
 		default:
 		{
 			return DefWindowProc(hWnd, message, wParam, lParam);
