@@ -30,12 +30,14 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include <imdisk/imdproxy.h>
 #include "GpuRamDrive.h"
 
+
 #if GPU_API == GPU_API_OPENCL
 #pragma comment (lib, "opencl.lib")
 #endif
 
 #if GPU_API == GPU_API_CUDA
 #pragma comment(lib, "cuda.lib")
+#include "CudaHandler.h"
 #endif
 
 GPURamDrive::GPURamDrive()
@@ -57,13 +59,15 @@ GPURamDrive::GPURamDrive()
 	, m_BufSize()
 	, m_BufStart()
 	, config(L"GpuRamDrive")
+	, debugTools(L"GpuRamDrive")
 #if GPU_API == GPU_API_CUDA
 	, m_cuDev(0)
 	, m_cuCtx(nullptr)
+	, m_cuDevPtr()
 #endif
 {
 #if GPU_API == GPU_API_CUDA
-	cuInit(0);
+	CudaHandler::GetInstance();
 #endif
 }
 
@@ -86,7 +90,6 @@ void GPURamDrive::RefreshGPUInfo()
 	GpuDevices.platform_id = 0;
 	GpuDevices.device_id = 0;
 	GpuDevices.name = "Host Memory";
-	m_Devices.push_back(GpuDevices);
 	m_Devices.push_back(GpuDevices);
 #elif GPU_API == GPU_API_CUDA
 	CUresult res;
@@ -189,6 +192,7 @@ void GPURamDrive::SetRemovable(bool removable)
 
 void GPURamDrive::CreateRamDevice(cl_platform_id PlatformId, cl_device_id DeviceId, const std::wstring& ServiceName, size_t MemSize, const wchar_t* MountPoint, const std::wstring& FormatParam, const std::wstring& LabelParam, bool TempFolderParam)
 {
+	debugTools.deb(L"Creating the ramdrive '%s'", MountPoint);
 	m_PlatformId = PlatformId;
 	m_DeviceId = DeviceId;
 	m_MemSize = MemSize;
@@ -196,6 +200,10 @@ void GPURamDrive::CreateRamDevice(cl_platform_id PlatformId, cl_device_id Device
 
 	std::exception state_ex;
 	std::atomic<int> state = 0;
+
+#if GPU_API == GPU_API_CUDA
+	m_cuCtx = CudaHandler::GetInstance()->getContext(m_DeviceId);
+#endif
 
 	// Avoid creating ram-device when it is still unmounting, usually when user do fast mount/unmount clicking.
 	if (m_GpuThread.joinable()) {
@@ -206,7 +214,9 @@ void GPURamDrive::CreateRamDevice(cl_platform_id PlatformId, cl_device_id Device
 	m_GpuThread = std::thread([&]() {
 		try
 		{
+			debugTools.deb(L"Allocating the memory '%llu'", MemSize);
 			GpuAllocateRam();
+			debugTools.deb(L"Setting the Imdisk '%s'", ServiceName.c_str());
 			ImdiskSetupComm(ServiceName);
 			state = 1;
 			ImdiskHandleComm();
@@ -229,9 +239,11 @@ void GPURamDrive::CreateRamDevice(cl_platform_id PlatformId, cl_device_id Device
 		throw state_ex;
 	}
 
+	debugTools.deb(L"Mounting the drive on '%s'", MountPoint);
 	ImdiskMountDevice(MountPoint);
 
 	if (FormatParam.length()) {
+		debugTools.deb(L"Formatting the drive as '%s'", FormatParam.c_str());
 		wchar_t formatCommand[128] = { 0 };
 		STARTUPINFO StartInfo = { 0 };
 		PROCESS_INFORMATION ProcInfo = { 0 };
@@ -258,11 +270,13 @@ void GPURamDrive::CreateRamDevice(cl_platform_id PlatformId, cl_device_id Device
 
 		// Set Volumen Label
 		if (LabelParam.length()) {
+			debugTools.deb(L"Setting volumen name to '%s'", LabelParam.c_str());
 			SetVolumeLabel(MountPoint, LabelParam.c_str());
 		}
 
 		// Create Temporal directory
 		if (TempFolderParam) {
+			debugTools.deb(L"Setting temporal environment to '%s\\Temp'", MountPoint);
 			wchar_t temporalFolderName[64] = { 0 };
 			_snwprintf_s(temporalFolderName, sizeof(temporalFolderName), L"%s\\Temp", MountPoint);
 			CreateDirectory(temporalFolderName, NULL);
@@ -296,6 +310,7 @@ void GPURamDrive::ImdiskUnmountDevice()
 	if (m_MountPoint.length() == 0) return;
 	config.restoreOriginalTempEnvironment();
 
+	debugTools.deb(L"Unmounting the ramdrive '%s'", m_MountPoint.c_str());
 	ImDiskRemoveDevice(NULL, 0, m_MountPoint.c_str());
 	m_MountPoint.clear();
 
@@ -332,9 +347,11 @@ void GPURamDrive::Close()
 	m_MemSize = 0;
 
 #if GPU_API == GPU_API_CUDA
+	cuCtxPushCurrent(m_cuCtx);
 	if (m_cuDevPtr) cuMemFree(m_cuDevPtr);
-	if (m_cuCtx) cuCtxDestroy(m_cuCtx);
+	CudaHandler::GetInstance()->removeContext(m_DeviceId);
 	m_cuDevPtr = 0;
+	cuCtxPopCurrent(&m_cuCtx); 
 #endif
 
 	if (m_StateChangeCallback) m_StateChangeCallback();
@@ -355,15 +372,24 @@ void GPURamDrive::GpuAllocateRam()
 #if GPU_API == GPU_API_HOSTMEM
 	m_pBuff = new char[m_MemSize];
 #elif GPU_API == GPU_API_CUDA
+	cuCtxPushCurrent(m_cuCtx);
 	CUresult res;
-
-	m_cuDev = (CUdevice)(UINT_PTR)(m_DeviceId);
-	m_DeviceId = 0;
-
-	cuCtxCreate(&m_cuCtx, 0, m_cuDev);
 	if ((res = cuMemAlloc(&m_cuDevPtr, m_MemSize)) != CUDA_SUCCESS) {
-		throw std::runtime_error("Unable to allocate memory on device: " + std::to_string(res));
+		if (res == CUDA_ERROR_OUT_OF_MEMORY) {
+			size_t free_m, total_m, free_b, total_b;
+			CUresult res2 = cuMemGetInfo(&free_b, &total_b);
+			free_m = free_b / 1048576;
+			total_m = total_b / 1048576;
+			debugTools.deb(L"Available free video memory: '%llu' bytes", free_b);
+			cuCtxPopCurrent(&m_cuCtx);
+			throw std::runtime_error("Not enough memory to alloc, free: '" + std::to_string(free_m) + "' Mb");
+		}
+		else {
+			cuCtxPopCurrent(&m_cuCtx);
+			throw std::runtime_error("Unable to allocate memory on device, error code: " + std::to_string(res));
+		}
 	}
+	cuCtxPopCurrent(&m_cuCtx);
 #else
 
 	cl_int clRet;
@@ -391,10 +417,12 @@ safeio_ssize_t GPURamDrive::GpuWrite(void *buf, safeio_size_t size, off_t_64 off
 	memcpy(m_pBuff + offset, buf, size);
 	return size;
 #elif GPU_API == GPU_API_CUDA
+	cuCtxPushCurrent(m_cuCtx);
 	if (cuMemcpyHtoD(m_cuDevPtr + (CUdeviceptr)offset, buf, size) == CUDA_SUCCESS) {
+		cuCtxPopCurrent(&m_cuCtx);
 		return size;
 	}
-
+	cuCtxPopCurrent(&m_cuCtx);
 	return 0;
 #else
 	if (clEnqueueWriteBuffer(m_Queue, m_GpuMem, CL_TRUE, (size_t)offset, (size_t)size, buf, 0, nullptr, nullptr) != CL_SUCCESS) {
@@ -411,10 +439,12 @@ safeio_ssize_t GPURamDrive::GpuRead(void *buf, safeio_size_t size, off_t_64 offs
 	memcpy(buf, m_pBuff + offset, size);
 	return size;
 #elif GPU_API == GPU_API_CUDA
+	cuCtxPushCurrent(m_cuCtx);
 	if (cuMemcpyDtoH(buf, m_cuDevPtr + (CUdeviceptr)offset, size) == CUDA_SUCCESS) {
+		cuCtxPopCurrent(&m_cuCtx);
 		return size;
 	}
-
+	cuCtxPopCurrent(&m_cuCtx);
 	return 0;
 #else
 	if (clEnqueueReadBuffer(m_Queue, m_GpuMem, CL_TRUE, (size_t)offset, (size_t)size, buf, 0, nullptr, nullptr) != CL_SUCCESS) {

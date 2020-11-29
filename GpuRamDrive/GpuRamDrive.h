@@ -14,7 +14,7 @@
 
 #include "Config.h"
 #include "DiskUtil.h"
-
+#include "DebugTools.h"
 
 struct TGPUDevice
 {
@@ -63,6 +63,7 @@ private:
 	void* m_BufStart;
 
 	Config config;
+	DebugTools debugTools;
 
 #if GPU_API == GPU_API_CUDA
 	CUdeviceptr m_cuDevPtr;

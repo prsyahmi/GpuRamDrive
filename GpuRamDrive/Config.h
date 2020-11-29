@@ -1,7 +1,4 @@
 #pragma once
-#if !defined(_WINDOWS_)
-#include <windows.h>
-#endif
 #include "Regkey.h"
 
 class Config
@@ -9,9 +6,14 @@ class Config
 private:
 	xfc::RegKey obKey;
 	LPTSTR pszKeyName;
-	DWORD currentGpuId;
+	DWORD currentDeviceId;
+	DWORD version;
+	std::vector<DWORD> vectorDevices;
 
 private:
+	void checkVersion();
+	void migrateVersion100();
+
 	bool getValue(LPCTSTR pszValueName, LPTSTR pszValue);
 	bool getValue(DWORD gpu, LPCTSTR pszValueName, LPTSTR pszValue);
 
@@ -27,23 +29,29 @@ private:
 	bool existValue(LPCTSTR pszValueName);
 	bool existValue(DWORD gpu, LPCTSTR pszValueName);
 
-	bool deleteValue(DWORD gpu, LPCTSTR pszValueName);
+	bool deleteValue(LPCTSTR pszValueName);
 
 public:
 	Config(LPCTSTR pszKeyName);
 	~Config();
 
-	void deleteAllConfig(DWORD gpu);
+	const std::vector<DWORD>& getDeviceList();
+	BOOL existDevice(DWORD deviceId);
+	DWORD getDeviceTempFolfer();
 
 	void saveOriginalTempEnvironment();
 	void setMountTempEnvironment(LPCTSTR pszValue);
 	void restoreOriginalTempEnvironment();
 
-	DWORD getGpuList();
-	void setGpuList(DWORD pszValue);
+	DWORD getCurrentDeviceId();
+	void setCurrentDeviceId(DWORD pszValue);
+
+	DWORD getGpuId();
+	DWORD getGpuId(DWORD gpuId);
+	void setGpuId(DWORD pszValue);
 
 	DWORD getDriveLetter();
-	DWORD getDriveLetter(DWORD gpuId);
+	DWORD getDriveLetter(DWORD deviceId);
 	void setDriveLetter(DWORD pszValue);
 
 	DWORD getDriveType();
@@ -68,9 +76,12 @@ public:
 	void setReadOnly(DWORD pszValue);
 
 	DWORD getTempFolder();
+	DWORD getTempFolder(DWORD deviceId);
 	void setTempFolder(DWORD pszValue);
 
 	DWORD getStartOnWindows();
-	DWORD getStartOnWindows(DWORD gpuId);
+	DWORD getStartOnWindows(DWORD deviceId);
 	void setStartOnWindows(DWORD pszValue);
+
+	bool deleteDevice(DWORD deviceId);
 };

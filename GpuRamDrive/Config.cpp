@@ -4,29 +4,55 @@
 
 Config::Config(LPCTSTR keyName)
 {
-	currentGpuId = 0;
+	currentDeviceId = 0;
+	version = 100;
 	this->pszKeyName = new TCHAR[_tcslen(L"Software\\") + _tcslen(keyName) + 1];
 	_tcscpy(this->pszKeyName, L"Software\\");
 	_tcscat(this->pszKeyName, keyName);
 #if GPU_API == GPU_API_CUDA
 	_tcscat(this->pszKeyName, L"_CUDA");
 #endif
+	checkVersion();
 }
 
 Config::~Config()
 {
 }
 
-void Config::deleteAllConfig(DWORD gpu)
+void Config::checkVersion()
 {
-	deleteValue(gpu, L"DriveLetter");
-	deleteValue(gpu, L"DriveType");
-	deleteValue(gpu, L"DriveRemovable");
-	deleteValue(gpu, L"DriveFormat");
-	deleteValue(gpu, L"MemSize");
-	deleteValue(gpu, L"DriveLabel");
-	deleteValue(gpu, L"TempFolder");
-	deleteValue(gpu, L"StarOnWindows");
+	DWORD configVersion = 0;
+	getValue(L"Version", configVersion);
+	if (configVersion == 0) {
+		migrateVersion100();
+	}
+}
+
+const std::vector<DWORD>& Config::getDeviceList()
+{
+	vectorDevices.clear();
+	for (int c = 0; c <= 'Z' - 'A'; c++)
+	{
+		if (existValue(c, L"DriveLetter"))
+			vectorDevices.push_back(c);
+	}
+	return vectorDevices;
+}
+
+BOOL Config::existDevice(DWORD deviceId)
+{
+	return existValue(deviceId, L"DriveLetter");
+}
+
+DWORD Config::getDeviceTempFolfer()
+{
+	auto v = getDeviceList();
+	for (int i = 0; i < v.size(); i++)
+	{
+		if (getTempFolder(v.at(i)))
+			return v.at(i);
+	}
+	return -1;
 }
 
 void Config::saveOriginalTempEnvironment()
@@ -68,87 +94,101 @@ void Config::restoreOriginalTempEnvironment()
 	SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"Environment", SMTO_ABORTIFHUNG, 5000, NULL);
 }
 
-DWORD Config::getGpuList()
+DWORD Config::getCurrentDeviceId()
 {
-	DWORD pszValue = currentGpuId;
-	getValue(L"DefaultGpu", pszValue);
+	return currentDeviceId;
+}
+
+void Config::setCurrentDeviceId(DWORD pszValue)
+{
+	currentDeviceId = pszValue;
+}
+
+DWORD Config::getGpuId()
+{
+	return getGpuId(currentDeviceId);
+}
+
+DWORD Config::getGpuId(DWORD deviceId)
+{
+	DWORD pszValue = 0;
+	getValue(deviceId, L"GpuId", pszValue);
 	return pszValue;
 }
 
-void Config::setGpuList(DWORD pszValue)
+void Config::setGpuId(DWORD pszValue)
 {
-	setValue(L"DefaultGpu", pszValue);
-	currentGpuId = pszValue;
+	setValue(currentDeviceId, L"GpuId", pszValue);
 }
 
 DWORD Config::getDriveLetter()
 {
-	return getDriveLetter(currentGpuId);
+	return getDriveLetter(currentDeviceId);
 }
 
-DWORD Config::getDriveLetter(DWORD gpuId)
+DWORD Config::getDriveLetter(DWORD deviceId)
 {
-	DWORD pszValue = 'R' - 'A';
-	getValue(gpuId, L"DriveLetter", pszValue);
+	DWORD pszValue = deviceId;
+	getValue(deviceId, L"DriveLetter", pszValue);
 	return pszValue;
 }
 
 void Config::setDriveLetter(DWORD pszValue)
 {
-	setValue(currentGpuId, L"DriveLetter", pszValue);
+	setValue(currentDeviceId, L"DriveLetter", pszValue);
 }
 
 DWORD Config::getDriveType()
 {
 	DWORD pszValue = 0;
-	getValue(currentGpuId, L"DriveType", pszValue);
+	getValue(currentDeviceId, L"DriveType", pszValue);
 	return pszValue;
 }
 
 void Config::setDriveType(DWORD pszValue)
 {
-	setValue(currentGpuId, L"DriveType", pszValue);
+	setValue(currentDeviceId, L"DriveType", pszValue);
 }
 
 DWORD Config::getDriveRemovable()
 {
 	DWORD pszValue = 0;
-	getValue(currentGpuId, L"DriveRemovable", pszValue);
+	getValue(currentDeviceId, L"DriveRemovable", pszValue);
 	return pszValue;
 }
 
 void Config::setDriveRemovable(DWORD pszValue)
 {
-	setValue(currentGpuId, L"DriveRemovable", pszValue);
+	setValue(currentDeviceId, L"DriveRemovable", pszValue);
 }
 
 DWORD Config::getDriveFormat()
 {
 	DWORD pszValue = 1;
-	getValue(currentGpuId, L"DriveFormat", pszValue);
+	getValue(currentDeviceId, L"DriveFormat", pszValue);
 	return pszValue;
 }
 
 void Config::setDriveFormat(DWORD pszValue)
 {
-	setValue(currentGpuId, L"DriveFormat", pszValue);
+	setValue(currentDeviceId, L"DriveFormat", pszValue);
 }
 
 DWORD Config::getMemSize()
 {
 	DWORD pszValue = 0;
-	getValue(currentGpuId, L"MemSize", pszValue);
+	getValue(currentDeviceId, L"MemSize", pszValue);
 	return pszValue;
 }
 
 void Config::setMemSize(DWORD pszValue)
 {
-	setValue(currentGpuId, L"MemSize", pszValue);
+	setValue(currentDeviceId, L"MemSize", pszValue);
 }
 
 void Config::getDriveLabel(LPTSTR pszValue)
 {
-	if (!getValue(currentGpuId, L"DriveLabel", pszValue))
+	if (!getValue(currentDeviceId, L"DriveLabel", pszValue))
 	{
 		_tcscpy(pszValue, L"GpuDisk");
 	}
@@ -156,12 +196,12 @@ void Config::getDriveLabel(LPTSTR pszValue)
 
 void Config::setDriveLabel(LPCTSTR pszValue)
 {
-	setValue(currentGpuId, L"DriveLabel", pszValue);
+	setValue(currentDeviceId, L"DriveLabel", pszValue);
 }
 
 void Config::getImageFile(LPTSTR pszValue)
 {
-	if (!getValue(currentGpuId, L"ImageFile", pszValue))
+	if (!getValue(currentDeviceId, L"ImageFile", pszValue))
 	{
 		_tcscpy(pszValue, L"");
 	}
@@ -169,48 +209,55 @@ void Config::getImageFile(LPTSTR pszValue)
 
 void Config::setImageFile(LPCTSTR pszValue)
 {
-	setValue(currentGpuId, L"ImageFile", pszValue);
+	setValue(currentDeviceId, L"ImageFile", pszValue);
 }
 
 DWORD Config::getReadOnly()
 {
 	DWORD pszValue = 0;
-	getValue(currentGpuId, L"ReadOnly", pszValue);
+	getValue(currentDeviceId, L"ReadOnly", pszValue);
 	return pszValue;
 }
 
 void Config::setReadOnly(DWORD pszValue)
 {
-	setValue(currentGpuId, L"ReadOnly", pszValue);
+	setValue(currentDeviceId, L"ReadOnly", pszValue);
 }
 
 DWORD Config::getTempFolder()
 {
 	DWORD pszValue = 0;
-	getValue(currentGpuId, L"TempFolder", pszValue);
+	getValue(currentDeviceId, L"TempFolder", pszValue);
+	return pszValue;
+}
+
+DWORD Config::getTempFolder(DWORD deviceId)
+{
+	DWORD pszValue = 0;
+	getValue(deviceId, L"TempFolder", pszValue);
 	return pszValue;
 }
 
 void Config::setTempFolder(DWORD pszValue)
 {
-	setValue(currentGpuId, L"TempFolder", pszValue);
+	setValue(currentDeviceId, L"TempFolder", pszValue);
 }
 
 DWORD Config::getStartOnWindows()
 {
-	return getStartOnWindows(currentGpuId);
+	return getStartOnWindows(currentDeviceId);
 }
 
-DWORD Config::getStartOnWindows(DWORD gpuId)
+DWORD Config::getStartOnWindows(DWORD deviceId)
 {
 	DWORD pszValue = 0;
-	getValue(gpuId, L"StartOnWindows", pszValue);
+	getValue(deviceId, L"StartOnWindows", pszValue);
 	return pszValue;
 }
 
 void Config::setStartOnWindows(DWORD pszValue)
 {
-	setValue(currentGpuId, L"StartOnWindows", pszValue);
+	setValue(currentDeviceId, L"StartOnWindows", pszValue);
 }
 
 bool Config::getValue(LPCTSTR pszValueName, LPTSTR pszValue)
@@ -294,19 +341,39 @@ bool Config::existValue(LPCTSTR pszValueName)
 	return obKey.GetSizeOfValue(pszKeyName, pszValueName, HKEY_CURRENT_USER) > 0;
 }
 
-bool Config::existValue(DWORD gpu, LPCTSTR pszValueName)
+bool Config::existValue(DWORD deviceId, LPCTSTR pszValueName)
 {
 	LPTSTR keyName = new TCHAR[_tcslen(this->pszKeyName) + _tcslen(this->pszKeyName) + 3 + 1];
-	_stprintf(keyName, _T("%s\\%d"), this->pszKeyName, gpu);
+	_stprintf(keyName, _T("%s\\%d"), this->pszKeyName, deviceId);
 
-	return obKey.GetSizeOfValue(pszKeyName, pszValueName, HKEY_CURRENT_USER) > 0;
+	return obKey.GetSizeOfValue(keyName, pszValueName, HKEY_CURRENT_USER) > 0;
 }
 
-bool Config::deleteValue(DWORD gpu, LPCTSTR pszValueName)
+bool Config::deleteDevice(DWORD deviceId)
 {
 	LPTSTR keyName = new TCHAR[_tcslen(this->pszKeyName) + _tcslen(this->pszKeyName) + 3 + 1];
-	_stprintf(keyName, _T("%s\\%d"), this->pszKeyName, gpu);
+	_stprintf(keyName, _T("%s\\%d"), this->pszKeyName, deviceId);
 
-	return obKey.DeleteKeyValue(keyName, pszValueName, HKEY_CURRENT_USER);
+	return obKey.QuickDeleteKey(keyName, HKEY_CURRENT_USER);
 }
 
+bool Config::deleteValue(LPCTSTR pszValueName)
+{
+	return obKey.DeleteKeyValue(this->pszKeyName, pszValueName, HKEY_CURRENT_USER);
+}
+
+void Config::migrateVersion100()
+{
+	deleteValue(L"DefaultGpu");
+	deleteDevice(0);
+	deleteDevice(1);
+	deleteDevice(2);
+	deleteDevice(3);
+	deleteDevice(4);
+	deleteDevice(5);
+	deleteDevice(6);
+	deleteDevice(7);
+	deleteDevice(8);
+	deleteDevice(9);
+	setValue(L"Version", version);
+}
