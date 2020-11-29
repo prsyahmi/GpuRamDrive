@@ -1,12 +1,11 @@
 #pragma once
-#define GPU_API_HOSTMEM 0
 #define GPU_API_CUDA    1
-#define GPU_API_OPENCL  2
 
 #if GPU_API == GPU_API_CUDA
 #include <map>
 #include <mutex>
 #include <cuda.h>
+#include "DebugTools.h"
 
 class CudaHandler
 {
@@ -15,6 +14,7 @@ private:
 	static std::mutex mutex_;
 	std::map<CUdevice, CUcontext> contexts;
 	std::map<CUdevice, int> contextsMux;
+	DebugTools debugTools;
 
 protected:
 	CudaHandler();
