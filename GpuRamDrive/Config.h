@@ -1,7 +1,4 @@
 #pragma once
-#if !defined(_WINDOWS_)
-#include <windows.h>
-#endif
 #include "Regkey.h"
 
 class Config

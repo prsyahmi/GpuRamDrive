@@ -2,7 +2,13 @@
 
 class DebugTools
 {
+private:
+	LPTSTR pszFileName;
+
 public:
-	static void deb(wchar_t* msg, ...);
-	static wchar_t* fmterr(DWORD err = GetLastError());
+	DebugTools(LPCTSTR pszFileName);
+	~DebugTools();
+	void deb(wchar_t* msg, ...);
+	wchar_t* fmterr(DWORD err = GetLastError());
+	void WriteToFile(LPCTSTR filename, wchar_t* data);
 };

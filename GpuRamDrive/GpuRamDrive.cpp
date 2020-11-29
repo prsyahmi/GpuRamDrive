@@ -29,7 +29,6 @@ OTHER DEALINGS IN THE SOFTWARE.
 #include <imdisk/imdisk.h>
 #include <imdisk/imdproxy.h>
 #include "GpuRamDrive.h"
-#include "DebugTools.h"
 
 
 #if GPU_API == GPU_API_OPENCL
@@ -60,6 +59,7 @@ GPURamDrive::GPURamDrive()
 	, m_BufSize()
 	, m_BufStart()
 	, config(L"GpuRamDrive")
+	, debugTools(L"GpuRamDrive")
 #if GPU_API == GPU_API_CUDA
 	, m_cuDev(0)
 	, m_cuCtx(nullptr)
@@ -192,7 +192,7 @@ void GPURamDrive::SetRemovable(bool removable)
 
 void GPURamDrive::CreateRamDevice(cl_platform_id PlatformId, cl_device_id DeviceId, const std::wstring& ServiceName, size_t MemSize, const wchar_t* MountPoint, const std::wstring& FormatParam, const std::wstring& LabelParam, bool TempFolderParam)
 {
-	DebugTools::deb(L"Creating the ramdrive '%s'", MountPoint);
+	debugTools.deb(L"Creating the ramdrive '%s'", MountPoint);
 	m_PlatformId = PlatformId;
 	m_DeviceId = DeviceId;
 	m_MemSize = MemSize;
@@ -214,9 +214,9 @@ void GPURamDrive::CreateRamDevice(cl_platform_id PlatformId, cl_device_id Device
 	m_GpuThread = std::thread([&]() {
 		try
 		{
-			DebugTools::deb(L"Allocating the memory '%llu'", MemSize);
+			debugTools.deb(L"Allocating the memory '%llu'", MemSize);
 			GpuAllocateRam();
-			DebugTools::deb(L"Setting the Imdisk '%s'", ServiceName.c_str());
+			debugTools.deb(L"Setting the Imdisk '%s'", ServiceName.c_str());
 			ImdiskSetupComm(ServiceName);
 			state = 1;
 			ImdiskHandleComm();
@@ -239,11 +239,11 @@ void GPURamDrive::CreateRamDevice(cl_platform_id PlatformId, cl_device_id Device
 		throw state_ex;
 	}
 
-	DebugTools::deb(L"Mounting the drive on '%s'", MountPoint);
+	debugTools.deb(L"Mounting the drive on '%s'", MountPoint);
 	ImdiskMountDevice(MountPoint);
 
 	if (FormatParam.length()) {
-		DebugTools::deb(L"Formatting the drive as '%s'", FormatParam.c_str());
+		debugTools.deb(L"Formatting the drive as '%s'", FormatParam.c_str());
 		wchar_t formatCommand[128] = { 0 };
 		STARTUPINFO StartInfo = { 0 };
 		PROCESS_INFORMATION ProcInfo = { 0 };
@@ -270,13 +270,13 @@ void GPURamDrive::CreateRamDevice(cl_platform_id PlatformId, cl_device_id Device
 
 		// Set Volumen Label
 		if (LabelParam.length()) {
-			DebugTools::deb(L"Setting volumen name to '%s'", LabelParam.c_str());
+			debugTools.deb(L"Setting volumen name to '%s'", LabelParam.c_str());
 			SetVolumeLabel(MountPoint, LabelParam.c_str());
 		}
 
 		// Create Temporal directory
 		if (TempFolderParam) {
-			DebugTools::deb(L"Setting temporal environment to '%s\\Temp'", MountPoint);
+			debugTools.deb(L"Setting temporal environment to '%s\\Temp'", MountPoint);
 			wchar_t temporalFolderName[64] = { 0 };
 			_snwprintf_s(temporalFolderName, sizeof(temporalFolderName), L"%s\\Temp", MountPoint);
 			CreateDirectory(temporalFolderName, NULL);
@@ -310,7 +310,7 @@ void GPURamDrive::ImdiskUnmountDevice()
 	if (m_MountPoint.length() == 0) return;
 	config.restoreOriginalTempEnvironment();
 
-	DebugTools::deb(L"Unmounting the ramdrive '%s'", m_MountPoint.c_str());
+	debugTools.deb(L"Unmounting the ramdrive '%s'", m_MountPoint.c_str());
 	ImDiskRemoveDevice(NULL, 0, m_MountPoint.c_str());
 	m_MountPoint.clear();
 
@@ -380,7 +380,7 @@ void GPURamDrive::GpuAllocateRam()
 			CUresult res2 = cuMemGetInfo(&free_b, &total_b);
 			free_m = free_b / 1048576;
 			total_m = total_b / 1048576;
-			DebugTools::deb(L"Available free video memory: '%llu' bytes", free_b);
+			debugTools.deb(L"Available free video memory: '%llu' bytes", free_b);
 			cuCtxPopCurrent(&m_cuCtx);
 			throw std::runtime_error("Not enough memory to alloc, free: '" + std::to_string(free_m) + "' Mb");
 		}

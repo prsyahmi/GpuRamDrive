@@ -26,8 +26,13 @@ bool TaskManager::ExistTaskJob(LPCTSTR wszTaskName)
 	return exists;
 }
 
-bool TaskManager::CreateTaskJob(LPCWSTR wszTaskName, wchar_t* nPath, wchar_t* nArguments)
+bool TaskManager::CreateTaskJob(LPCWSTR wszTaskName, wchar_t* nFullPath, wchar_t* nArguments)
 {
+	wchar_t pathName[MAX_PATH] = { 0 };
+	wcscpy(pathName, nFullPath);
+	wchar_t* pos = wcsrchr(pathName, '\\');
+	*pos = '\0';
+
 	HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
 	hr = CoInitializeSecurity(NULL, -1, NULL, NULL, RPC_C_AUTHN_LEVEL_PKT_PRIVACY, RPC_C_IMP_LEVEL_IMPERSONATE, NULL, 0, NULL);
 	ITaskService* pService = NULL;
@@ -91,8 +96,9 @@ bool TaskManager::CreateTaskJob(LPCWSTR wszTaskName, wchar_t* nPath, wchar_t* nA
 	hr = pAction->QueryInterface(IID_IExecAction, (void**)&pExecAction);
 	pAction->Release();
 
-	hr = pExecAction->put_Path(_bstr_t(nPath));
+	hr = pExecAction->put_Path(_bstr_t(nFullPath));
 	pExecAction->put_Arguments(_bstr_t(nArguments));
+	pExecAction->put_WorkingDirectory(_bstr_t(pathName));
 	pExecAction->Release();
 
 	IRegisteredTask* pRegisteredTask = NULL;

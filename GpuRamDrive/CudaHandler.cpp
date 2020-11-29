@@ -1,6 +1,5 @@
 #include "stdafx.h"
 #include "CudaHandler.h"
-#include "DebugTools.h"
 
 #if GPU_API == GPU_API_CUDA
 #pragma comment(lib, "cuda.lib")
@@ -11,8 +10,9 @@ std::mutex CudaHandler::mutex_;
 CudaHandler::CudaHandler()
 	: contexts()
 	, contextsMux()
+	, debugTools(L"GpuRamDrive")
 {
-	DebugTools::deb(L"Cuda initialize");
+	debugTools.deb(L"Cuda initialize");
 	cuInit(0);
 }
 
@@ -20,7 +20,7 @@ CudaHandler::~CudaHandler()
 {
 	for (auto const& x : contexts)
 	{
-		DebugTools::deb(L"Cuda context %u destroy", x.first);
+		debugTools.deb(L"Cuda context %u destroy", x.first);
 		if (x.second) cuCtxDestroy(x.second);
 	}
 }
@@ -41,7 +41,7 @@ CUcontext CudaHandler::getContext(cl_device_id clDeviceId)
 	CUdevice m_cuDev = (CUdevice)(UINT_PTR)(clDeviceId);
 	if (contexts.find(m_cuDev) == contexts.end())
 	{
-		DebugTools::deb(L"Generating new context for cuda device: '%d'", m_cuDev);
+		debugTools.deb(L"Generating new context for cuda device: '%d'", m_cuDev);
 		CUcontext m_cuCtx;
 		cuDevicePrimaryCtxRetain(&m_cuCtx, m_cuDev);
 		contexts[m_cuDev] = m_cuCtx;
@@ -60,8 +60,9 @@ void CudaHandler::removeContext(cl_device_id clDeviceId)
 	contextsMux[m_cuDev]--;
 	if (contextsMux[m_cuDev] == 0)
 	{
-		DebugTools::deb(L"Destroying the context for cuda device: '%d'", m_cuDev);
-		cuCtxDestroy(contexts[m_cuDev]);
+		debugTools.deb(L"Destroying the context for cuda device: '%d'", m_cuDev);
+		//cuCtxDestroy(contexts[m_cuDev]);
+		cuDevicePrimaryCtxRelease(m_cuDev);
 		contexts[m_cuDev] = nullptr;
 		contexts.erase(m_cuDev);
 	}

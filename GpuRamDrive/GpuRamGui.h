@@ -5,6 +5,7 @@
 #include "DiskUtil.h"
 #include "Config.h"
 #include "DataGridConfig.h"
+#include "DebugTools.h"
 
 class GpuRamGui
 {
@@ -41,6 +42,7 @@ private:
 	DiskUtil diskUtil;
 	Config config;
 	DataGridConfig dataGridConfig;
+	DebugTools debugTools;
 
 public:
 	GpuRamGui();
