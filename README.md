@@ -1,7 +1,7 @@
 # GpuRamDrive
 Create a virtual drive backed by GPU RAM.
 
-![Screenshot](https://repository-images.githubusercontent.com/302840646/47ac2b00-16fb-11eb-9c50-52fe9dcdbca8)
+![Screenshot](https://repository-images.githubusercontent.com/302840646/59966600-3285-11eb-94aa-9c2c917da458)
 
 This application simply allocates a memory buffer inside GPU RAM and use it as virtual ram disk. The project is made possible by ImDisk and its proxy feature.
 
@@ -14,7 +14,7 @@ People who interested in this might also want to check BadMemory: https://github
 ## Usage
 1. Install ImDisk Virtual drive (https://www.ltr-data.se/opencode.html)
 2. Download GpuRamDrive from https://github.com/prsyahmi/GpuRamDrive/releases
-3. Run GpuRamDrive_x86.exe or GpuRamDrive_x64.exe according to your platform
+3. Run GpuRamDrive_x64.exe or GpuRamDrive-cuda_x64.exe according to your platform
 
 ## Compiling
 To compile, open the solution, configure the target platform and build the project.
