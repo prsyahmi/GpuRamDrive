@@ -44,10 +44,10 @@ public:
 	void restoreOriginalTempEnvironment();
 
 	DWORD getCurrentDeviceId();
-	void setCurrentDeviceId(DWORD pszValue);
+	void setCurrentDeviceId(DWORD deviceId);
 
 	DWORD getGpuId();
-	DWORD getGpuId(DWORD gpuId);
+	DWORD getGpuId(DWORD deviceId);
 	void setGpuId(DWORD pszValue);
 
 	DWORD getDriveLetter();
@@ -73,6 +73,7 @@ public:
 	void setImageFile(LPCTSTR pszValue);
 
 	DWORD getReadOnly();
+	DWORD getReadOnly(DWORD deviceId);
 	void setReadOnly(DWORD pszValue);
 
 	DWORD getTempFolder();

@@ -57,7 +57,7 @@ public:
 private:
 	void OnCreate();
 	void OnDestroy();
-	void OnEndSession();
+	void OnEndSession(bool isShutdown);
 	void OnResize(WORD width, WORD height, bool minimized);
 	void ReloadDriveLetterList();
 	boolean IsAnyMounted();
@@ -65,7 +65,7 @@ private:
 	void SaveGuiParams();
 	void RemoveDevice(DWORD deviceId);
 	void SetStartOnWindows();
-	void OnMountClicked(DWORD deviceId);
+	void OnMountClicked(DWORD deviceId, bool isShutdown);
 	void OnTrayInteraction(LPARAM lParam);
 	void UpdateState();
 

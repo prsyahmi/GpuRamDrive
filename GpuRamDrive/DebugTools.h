@@ -10,5 +10,6 @@ public:
 	~DebugTools();
 	void deb(wchar_t* msg, ...);
 	wchar_t* fmterr(DWORD err = GetLastError());
-	void WriteToFile(LPCTSTR filename, wchar_t* data);
+	void writeToFile(LPCTSTR filename, wchar_t* data);
+	std::string getCurrentTimestamp();
 };

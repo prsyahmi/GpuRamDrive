@@ -76,8 +76,6 @@ void Config::setMountTempEnvironment(LPCTSTR pszValue)
 {
 	obKey.SetKeyValue(L"Environment", L"TEMP", pszValue, (DWORD)wcslen(pszValue) * 2, true, false, HKEY_CURRENT_USER);
 	obKey.SetKeyValue(L"Environment", L"TMP", pszValue, (DWORD)wcslen(pszValue) * 2, true, false, HKEY_CURRENT_USER);
-	SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)"Environment", SMTO_ABORTIFHUNG, 5000, NULL);
-	SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"Environment", SMTO_ABORTIFHUNG, 5000, NULL);
 }
 
 void Config::restoreOriginalTempEnvironment()
@@ -90,8 +88,6 @@ void Config::restoreOriginalTempEnvironment()
 	if (getValue(L"OriginalTmp", zsTemp)) {
 		obKey.SetKeyValue(L"Environment", L"TMP", zsTemp, (DWORD)wcslen(zsTemp) * sizeof(wchar_t), true, false, HKEY_CURRENT_USER);
 	}
-	SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)"Environment", SMTO_ABORTIFHUNG, 5000, NULL);
-	SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"Environment", SMTO_ABORTIFHUNG, 5000, NULL);
 }
 
 DWORD Config::getCurrentDeviceId()
@@ -214,8 +210,13 @@ void Config::setImageFile(LPCTSTR pszValue)
 
 DWORD Config::getReadOnly()
 {
+	return getReadOnly(currentDeviceId);
+}
+
+DWORD Config::getReadOnly(DWORD deviceId)
+{
 	DWORD pszValue = 0;
-	getValue(currentDeviceId, L"ReadOnly", pszValue);
+	getValue(deviceId, L"ReadOnly", pszValue);
 	return pszValue;
 }
 

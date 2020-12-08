@@ -100,6 +100,26 @@ std::wstring DiskUtil::chooserFile(const wchar_t* title, const wchar_t* filter)
     */
 }
 
+void DiskUtil::createDriveIcon(char letter)
+{
+    wchar_t keyName[128 + 1] = { 0 };
+    _stprintf(keyName, _T("SOFTWARE\\Classes\\Applications\\Explorer.exe\\Drives\\%c\\DefaultIcon"), letter);
+    LPTSTR path = new TCHAR[MAX_PATH];
+    GetModuleFileName(NULL, path, MAX_PATH);
+
+    wchar_t pszValue[MAX_PATH + 10] = { 0 };
+    _stprintf(pszValue, _T("%s,0"), path);
+
+    obKey.SetKeyValue(keyName, L"", pszValue, (DWORD)wcslen(pszValue) * sizeof(wchar_t), true, false, HKEY_CURRENT_USER);
+}
+
+void DiskUtil::removeDriveIcon(char letter)
+{
+    LPTSTR keyName = new TCHAR[128 + 1];
+    _stprintf(keyName, _T("SOFTWARE\\Classes\\Applications\\Explorer.exe\\Drives\\%c"), letter);
+    obKey.QuickDeleteKey(keyName, HKEY_CURRENT_USER);
+}
+
 void DiskUtil::throwError(const char* text)
 {
     DWORD err = GetLastError();
