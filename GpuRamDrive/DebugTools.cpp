@@ -17,7 +17,7 @@ DebugTools::~DebugTools() {}
 void DebugTools::deb(wchar_t* msg, ...)
 {
 #if _DEBUG
-    va_list ap;
+  va_list ap;
 	wchar_t string[2048] = {};
 	wchar_t stringout[4096] = {};
 
@@ -27,7 +27,7 @@ void DebugTools::deb(wchar_t* msg, ...)
 
 	swprintf(stringout, wcslen(stringout) - 1,  L"<%X> %s\n", GetCurrentThreadId(), string);
 	OutputDebugString(stringout);
-    writeToFile(this->pszFileName, stringout);
+  writeToFile(this->pszFileName, stringout);
 #endif
 }
 

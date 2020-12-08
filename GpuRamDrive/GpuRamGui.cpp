@@ -581,6 +581,12 @@ void GpuRamGui::OnMountClicked(DWORD deviceId, bool isShutdown)
 
 		RestoreGuiParams((DWORD)-1, 0);
 	}
+	else
+	{
+		SendMessage(dataGridConfig.getDataGridHandler(), WM_LBUTTONDOWN, MAKEWPARAM(0, 0), (LPARAM)NULL);
+		SendMessage(dataGridConfig.getDataGridHandler(), WM_LBUTTONUP, MAKEWPARAM(0, 0), (LPARAM)NULL);
+	}
+	RestoreGuiParams((DWORD)-1, 0);
 }
 
 void GpuRamGui::OnTrayInteraction(LPARAM lParam)
