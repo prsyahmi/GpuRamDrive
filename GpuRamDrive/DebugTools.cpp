@@ -17,7 +17,7 @@ DebugTools::~DebugTools() {}
 void DebugTools::deb(wchar_t* msg, ...)
 {
 #if _DEBUG
-    va_list ap;
+  va_list ap;
 	wchar_t string[2048] = {};
 	wchar_t stringout[4096] = {};
 
@@ -27,7 +27,7 @@ void DebugTools::deb(wchar_t* msg, ...)
 
 	swprintf(stringout, wcslen(stringout) - 1,  L"<%X> %s\n", GetCurrentThreadId(), string);
 	OutputDebugString(stringout);
-    WriteToFile(this->pszFileName, stringout);
+  writeToFile(this->pszFileName, stringout);
 #endif
 }
 
@@ -44,10 +44,13 @@ wchar_t* DebugTools::fmterr(DWORD err)
 	return szInternal;
 }
 
-void DebugTools::WriteToFile(LPCTSTR filename, wchar_t* data)
+void DebugTools::writeToFile(LPCTSTR filename, wchar_t* data)
 {
+    wchar_t message[4096] = {};
+    _stprintf(message, L"%S - %s", getCurrentTimestamp().c_str(), data);
+
     HANDLE hFile;
-    DWORD dwBytesToWrite = wcslen(data) * sizeof(wchar_t);
+    DWORD dwBytesToWrite = (DWORD)wcslen(message) * sizeof(wchar_t);
     DWORD dwBytesWritten;
     BOOL bErrorFlag = FALSE;
 
@@ -65,7 +68,7 @@ void DebugTools::WriteToFile(LPCTSTR filename, wchar_t* data)
     {
         bErrorFlag = WriteFile(
             hFile,              // open file handle
-            (LPVOID)data,       // start of data to write
+            (LPVOID)message,    // start of data to write
             dwBytesToWrite,     // number of bytes to write
             &dwBytesWritten,    // number of bytes that were written
             NULL);              // no overlapped structure
@@ -77,4 +80,23 @@ void DebugTools::WriteToFile(LPCTSTR filename, wchar_t* data)
     }
 
     CloseHandle(hFile);
+}
+
+std::string DebugTools::getCurrentTimestamp()
+{
+    using std::chrono::system_clock;
+    auto currentTime = std::chrono::system_clock::now();
+    char buffer[80];
+
+    auto transformed = currentTime.time_since_epoch().count() / 1000000;
+
+    auto millis = transformed % 1000;
+
+    std::time_t tt;
+    tt = system_clock::to_time_t(currentTime);
+    auto timeinfo = localtime(&tt);
+    strftime(buffer, 80, "%F %H:%M:%S", timeinfo);
+    sprintf(buffer, "%s:%03d", buffer, (int)millis);
+
+    return std::string(buffer);
 }

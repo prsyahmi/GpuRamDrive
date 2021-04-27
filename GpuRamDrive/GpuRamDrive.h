@@ -39,8 +39,10 @@ private:
 	EGpuRamDriveType m_DriveType;
 	bool m_DriveRemovable;
 
-	cl_platform_id m_PlatformId;
-	cl_device_id m_DeviceId;
+	cl_platform_id m_clPlatformId;
+	cl_device_id m_clDeviceId;
+	DWORD m_DeviceId;
+	bool m_TempFolderParam;
 	size_t m_MemSize;
 	size_t m_BufSize;
 	std::wstring m_ServiceName;

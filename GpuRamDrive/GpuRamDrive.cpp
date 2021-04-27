@@ -54,8 +54,8 @@ GPURamDrive::GPURamDrive()
 	, m_ShmReqEvent(NULL)
 	, m_ShmRespEvent(NULL)
 	, m_ShmView(nullptr)
-	, m_PlatformId()
-	, m_DeviceId()
+	, m_clPlatformId()
+	, m_clDeviceId()
 	, m_BufSize()
 	, m_BufStart()
 	, config(L"GpuRamDrive")
@@ -190,19 +190,21 @@ void GPURamDrive::SetRemovable(bool removable)
 	m_DriveRemovable = removable;
 }
 
-void GPURamDrive::CreateRamDevice(cl_platform_id PlatformId, cl_device_id DeviceId, const std::wstring& ServiceName, size_t MemSize, const wchar_t* MountPoint, const std::wstring& FormatParam, const std::wstring& LabelParam, bool TempFolderParam)
+void GPURamDrive::CreateRamDevice(cl_platform_id clPlatformId, cl_device_id clDeviceId, const std::wstring& ServiceName, size_t MemSize, const wchar_t* MountPoint, const std::wstring& FormatParam, const std::wstring& LabelParam, bool TempFolderParam)
 {
 	debugTools.deb(L"Creating the ramdrive '%s'", MountPoint);
-	m_PlatformId = PlatformId;
-	m_DeviceId = DeviceId;
+	m_clPlatformId = clPlatformId;
+	m_clDeviceId = clDeviceId;
 	m_MemSize = MemSize;
 	m_ServiceName = ServiceName;
+	m_DeviceId = IMDISK_AUTO_DEVICE_NUMBER;
+	m_TempFolderParam = TempFolderParam;
 
 	std::exception state_ex;
 	std::atomic<int> state = 0;
 
 #if GPU_API == GPU_API_CUDA
-	m_cuCtx = CudaHandler::GetInstance()->getContext(m_DeviceId);
+	m_cuCtx = CudaHandler::GetInstance()->getContext(m_clDeviceId);
 #endif
 
 	// Avoid creating ram-device when it is still unmounting, usually when user do fast mount/unmount clicking.
@@ -280,9 +282,11 @@ void GPURamDrive::CreateRamDevice(cl_platform_id PlatformId, cl_device_id Device
 			wchar_t temporalFolderName[64] = { 0 };
 			_snwprintf_s(temporalFolderName, sizeof(temporalFolderName), L"%s\\Temp", MountPoint);
 			CreateDirectory(temporalFolderName, NULL);
-
 			config.setMountTempEnvironment(temporalFolderName);
 		}
+
+		// Create Icon Drive
+		
 	}
 
 	if (m_StateChangeCallback) m_StateChangeCallback();
@@ -297,25 +301,38 @@ void GPURamDrive::ImdiskMountDevice(const wchar_t* MountPoint)
 	ImDiskSetAPIFlags(IMDISK_API_FORCE_DISMOUNT);
 
 	m_MountPoint = MountPoint;
-	if (!ImDiskCreateDevice(NULL, &dskGeom, nullptr, flags, m_ServiceName.c_str(), FALSE, (LPWSTR)MountPoint)) {
+	debugTools.deb(L"ImDiskCreateDeviceEx start");
+	if (!ImDiskCreateDeviceEx(NULL, &m_DeviceId, &dskGeom, nullptr, flags, m_ServiceName.c_str(), FALSE, (LPWSTR)MountPoint)) {
 		m_GpuThread.detach();
 		Close();
 		ImdiskUnmountDevice();
 		throw std::runtime_error("Unable to create and mount ImDisk drive");
 	}
+	debugTools.deb(L"ImDiskCreateDeviceEx end");
 }
 
 void GPURamDrive::ImdiskUnmountDevice()
 {
 	if (m_MountPoint.length() == 0) return;
-	config.restoreOriginalTempEnvironment();
 
-	debugTools.deb(L"Unmounting the ramdrive '%s'", m_MountPoint.c_str());
-	ImDiskRemoveDevice(NULL, 0, m_MountPoint.c_str());
-	m_MountPoint.clear();
+	try
+	{
+		if (m_TempFolderParam)
+			config.restoreOriginalTempEnvironment();
 
-	if (m_GpuThread.get_id() != std::this_thread::get_id()) {
-		if (m_GpuThread.joinable()) m_GpuThread.join();
+		debugTools.deb(L"Unmounting the ramdrive '%s'", m_MountPoint.c_str());
+		//ImDiskRemoveDevice(NULL, 0, m_MountPoint.c_str());
+		ImDiskForceRemoveDevice(NULL, m_DeviceId);
+		debugTools.deb(L"Unmounted the ramdrive '%s'", m_MountPoint.c_str());
+		m_MountPoint.clear();
+
+		if (m_GpuThread.get_id() != std::this_thread::get_id()) {
+			if (m_GpuThread.joinable()) m_GpuThread.join();
+		}
+	}
+	catch (const std::exception& ex)
+	{
+		debugTools.deb(L"Error to unmounting the ramdrive '%s'", ex.what());
 	}
 }
 
@@ -349,7 +366,7 @@ void GPURamDrive::Close()
 #if GPU_API == GPU_API_CUDA
 	cuCtxPushCurrent(m_cuCtx);
 	if (m_cuDevPtr) cuMemFree(m_cuDevPtr);
-	CudaHandler::GetInstance()->removeContext(m_DeviceId);
+	CudaHandler::GetInstance()->removeContext(m_clDeviceId);
 	m_cuDevPtr = 0;
 	cuCtxPopCurrent(&m_cuCtx); 
 #endif
@@ -394,12 +411,12 @@ void GPURamDrive::GpuAllocateRam()
 
 	cl_int clRet;
 
-	m_Context = clCreateContext(nullptr, 1, &m_DeviceId, nullptr, nullptr, &clRet);
+	m_Context = clCreateContext(nullptr, 1, &m_clDeviceId, nullptr, nullptr, &clRet);
 	if (m_Context == nullptr) {
 		throw std::runtime_error("Unable to create context: " + std::to_string(clRet));
 	}
 
-	m_Queue = clCreateCommandQueue(m_Context, m_DeviceId, 0, &clRet);
+	m_Queue = clCreateCommandQueue(m_Context, m_clDeviceId, 0, &clRet);
 	if (m_Queue == nullptr) {
 		throw std::runtime_error("Unable to create command queue: " + std::to_string(clRet));
 	}

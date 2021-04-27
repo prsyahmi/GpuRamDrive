@@ -134,7 +134,7 @@ void GpuRamGui::AutoMount()
 			RestoreGuiParams(devices.at(i), 256);
 			if (config.getStartOnWindows() == 1)
 			{
-				OnMountClicked(devices.at(i));
+				OnMountClicked(devices.at(i), false);
 				m_Tray.SetTooltip(wszAppName, true);
 			}
 		}
@@ -256,7 +256,7 @@ void GpuRamGui::OnCreate()
 				});
 		}
 
-		if (config.getCurrentDeviceId() >= index)
+		if (config.getCurrentDeviceId() >= (DWORD)index)
 		{
 			config.setCurrentDeviceId(0);
 		}
@@ -299,7 +299,7 @@ void GpuRamGui::ReloadDriveLetterList()
 	for (wchar_t c = 'A'; c <= 'Z'; c++)
 	{
 		wchar_t szTemp2[64];
-		_snwprintf_s(szTemp, sizeof(szTemp), (diskUtil.checkDriveIsMounted(c, szTemp2) ? L"%c: - %s" : L"%c:%s"), c, szTemp2);
+		_snwprintf_s(szTemp, sizeof(szTemp), (diskUtil.checkDriveIsMounted((char)c, szTemp2) ? L"%c: - %s" : L"%c:%s"), c, szTemp2);
 		ComboBox_AddString(m_CtlDriveLetter, szTemp);
 	}
 	ComboBox_SetCurSel(m_CtlDriveLetter, config.getDriveLetter());
@@ -368,7 +368,7 @@ void GpuRamGui::SaveGuiParams()
 
 	wchar_t szTemp[64] = { 0 };
 	Edit_GetText(m_CtlMemSize, szTemp, sizeof(szTemp) / sizeof(wchar_t));
-	config.setMemSize((size_t)_wtoi64(szTemp));
+	config.setMemSize((DWORD)_wtoi64(szTemp));
 
 	Edit_GetText(m_CtlDriveLabel, szTemp, sizeof(szTemp) / sizeof(wchar_t));
 	config.setDriveLabel(szTemp);
@@ -401,7 +401,7 @@ void GpuRamGui::SetStartOnWindows()
 	boolean isStartOnWindows = false;
 	for (int i = 0; i < devices.size(); i++)
 	{
-		isStartOnWindows = config.getStartOnWindows(devices.at(i));
+		isStartOnWindows = config.getStartOnWindows(devices.at(i)) == (DWORD)1;
 		if (isStartOnWindows)
 			break;
 	}
@@ -419,19 +419,24 @@ void GpuRamGui::SetStartOnWindows()
 
 void GpuRamGui::OnDestroy()
 {
-	OnEndSession();
+	auto devices = config.getDeviceList();
+	OnEndSession(false);
 	PostQuitMessage(0);
 }
 
-void GpuRamGui::OnEndSession()
+void GpuRamGui::OnEndSession(bool isShutdown)
 {
+	debugTools.deb(L"OnEndSession start: %d", isShutdown);
 	auto devices = config.getDeviceList();
 	for (int i = 0; i < devices.size(); i++)
 	{
+		debugTools.deb(L"OnEndSession device %d", i);
 		if (m_RamDrive[devices.at(i)].IsMounted()) {
-			m_RamDrive[devices.at(i)].ImdiskUnmountDevice();
+			debugTools.deb(L"OnEndSession unmount device %d", i);
+			OnMountClicked(devices.at(i), isShutdown);
 		}
 	}
+	debugTools.deb(L"OnEndSession end");
 }
 
 void GpuRamGui::OnResize(WORD width, WORD height, bool minimized)
@@ -444,13 +449,15 @@ void GpuRamGui::OnResize(WORD width, WORD height, bool minimized)
 	}
 }
 
-void GpuRamGui::OnMountClicked(DWORD deviceId)
+void GpuRamGui::OnMountClicked(DWORD deviceId, bool isShutdown)
 {
 	if (deviceId == (DWORD)-1) {
 		return;
 	}
+	config.setCurrentDeviceId(deviceId);
 
-	int gpuId = ComboBox_GetCurSel(m_CtlGpuList);
+	bool tempFolderParam = config.getTempFolder();
+	int gpuId = config.getGpuId();
 	auto vGpu = m_RamDrive[0].GetGpuDevices();
 	if (gpuId >= (int)vGpu.size()) {
 		MessageBox(m_hWnd, L"GPU selection is invalid", L"Error while selecting GPU", MB_OK);
@@ -461,32 +468,34 @@ void GpuRamGui::OnMountClicked(DWORD deviceId)
 	if (!isMounted)
 	{
 		wchar_t szTemp[64] = { 0 };
+		config.getMemSize();
+		size_t memSize = (size_t)config.getMemSize() * 1024 * 1024;
 
-		Edit_GetText(m_CtlMemSize, szTemp, sizeof(szTemp) / sizeof(wchar_t));
-		size_t memSize = (size_t)_wtoi64(szTemp) * 1024 * 1024;
-
-		ComboBox_GetText(m_CtlDriveFormat, szTemp, sizeof(szTemp) / sizeof(wchar_t));
 		wchar_t format[64] = { 0 };
-		_snwprintf_s(format, sizeof(format), L"/fs:%s /q", szTemp);
+		if (config.getDriveFormat() == 0)
+			_snwprintf_s(format, sizeof(format), L"/fs:%s /q", L"FAT32");
+		else if (config.getDriveFormat() == 1)
+			_snwprintf_s(format, sizeof(format), L"/fs:%s /q", L"exFAT");
+		else
+			_snwprintf_s(format, sizeof(format), L"/fs:%s /q", L"NTFS");
 		std::wstring formatParam = format;
 
-		Edit_GetText(m_CtlDriveLabel, szTemp, sizeof(szTemp) / sizeof(wchar_t));
+		config.getDriveLabel(szTemp);
 		std::wstring labelParam = szTemp;
 
-		bool tempFolderParam = Button_GetCheck(m_CtlTempFolder);
-
-		EGpuRamDriveType driveType = ComboBox_GetCurSel(m_CtlDriveType) == 0 ? EGpuRamDriveType::HD : EGpuRamDriveType::FD;
-		bool driveRemovable = ComboBox_GetCurSel(m_CtlDriveRemovable) == 0 ? false : true;
+		EGpuRamDriveType driveType = config.getDriveType() == 0 ? EGpuRamDriveType::HD : EGpuRamDriveType::FD;
+		bool driveRemovable = config.getDriveRemovable() == 0 ? false : true;
 
 		if (memSize >= vGpu[gpuId].memsize) {
 			MessageBox(m_hWnd, L"The memory size you specified is too large", L"Invalid memory size", MB_OK);
 			return;
 		}
 
-		ComboBox_GetText(m_CtlDriveLetter, szTemp, sizeof(szTemp) / sizeof(wchar_t));
+		DWORD letter = config.getDriveLetter();
+		_snwprintf_s(szTemp, sizeof(szTemp), L"%c:", 'A' + letter);
 		wchar_t* mountPointParam = szTemp;
 
-		if (diskUtil.checkDriveIsMounted(mountPointParam[0], NULL))
+		if (diskUtil.checkDriveIsMounted((char)mountPointParam[0], NULL))
 		{
 			MessageBox(m_hWnd, L"It is not possible to mount the unit, it is already in use", wszAppName, MB_OK);
 			return;
@@ -525,7 +534,7 @@ void GpuRamGui::OnMountClicked(DWORD deviceId)
 	{
 		try
 		{
-			if (!Button_GetCheck(m_CtlReadOnly))
+			if (!config.getReadOnly(deviceId))
 			{
 				wchar_t szImageFile[MAX_PATH] = { 0 };
 				config.getImageFile(szImageFile);
@@ -547,11 +556,30 @@ void GpuRamGui::OnMountClicked(DWORD deviceId)
 		m_RamDrive[deviceId].ImdiskUnmountDevice();
 		dataGridConfig.setRowMount(deviceId, false);
 	}
-	ReloadDriveLetterList();
-	if (isMounted)
+
+	if (!isShutdown)
 	{
-		SendMessage(dataGridConfig.getDataGridHandler(), WM_LBUTTONDOWN, (WPARAM)NULL, MAKELPARAM(275, 50));
-		SendMessage(dataGridConfig.getDataGridHandler(), WM_LBUTTONUP, (WPARAM)NULL, MAKELPARAM(275, 50));
+		ReloadDriveLetterList();
+		if (isMounted)
+		{
+			diskUtil.removeDriveIcon('A' + (char)deviceId);
+			SendMessage(dataGridConfig.getDataGridHandler(), WM_LBUTTONDOWN, (WPARAM)NULL, MAKELPARAM(275, 50));
+			SendMessage(dataGridConfig.getDataGridHandler(), WM_LBUTTONUP, (WPARAM)NULL, MAKELPARAM(275, 50));
+		}
+		else
+		{
+			diskUtil.createDriveIcon('A' + (char)deviceId);
+			SendMessage(dataGridConfig.getDataGridHandler(), WM_LBUTTONDOWN, MAKEWPARAM(0, 0), (LPARAM)NULL);
+			SendMessage(dataGridConfig.getDataGridHandler(), WM_LBUTTONUP, MAKEWPARAM(0, 0), (LPARAM)NULL);
+		}
+
+		if (tempFolderParam)
+		{
+			SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)"Environment", SMTO_ABORTIFHUNG, 5000, NULL);
+			SendMessageTimeout(HWND_BROADCAST, WM_SETTINGCHANGE, 0, (LPARAM)L"Environment", SMTO_ABORTIFHUNG, 5000, NULL);
+		}
+
+		RestoreGuiParams((DWORD)-1, 0);
 	}
 	else
 	{
@@ -711,10 +739,10 @@ LRESULT CALLBACK GpuRamGui::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 		}
 		break;
 		case WM_ENDSESSION:
-			if (_this && wParam == true) _this->OnEndSession();
-			break;
-
-		case WM_QUERYENDSESSION:
+			if (_this && TRUE == (BOOL)wParam)
+			{
+				_this->OnEndSession(lParam != ENDSESSION_LOGOFF);
+			}
 			return TRUE;
 			break;
 
@@ -757,7 +785,7 @@ LRESULT CALLBACK GpuRamGui::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 				
 				if ((HANDLE)lParam == _this->m_CtlMountBtn) {
 					EnableWindow(_this->m_CtlMountBtn, FALSE);
-					_this->OnMountClicked(_this->dataGridConfig.getSelectedDeviceId());
+					_this->OnMountClicked(_this->dataGridConfig.getSelectedDeviceId(), false);
 					//EnableWindow(_this->m_CtlMountBtn, TRUE);
 				}
 				else if ((HANDLE)lParam == _this->m_CtlDriveLetter) {
@@ -770,7 +798,7 @@ LRESULT CALLBACK GpuRamGui::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 #else
 						int suggestedRamSize = (int)((it.memsize / 1024 / 1024) - 1024);
 #endif
-						_this->RestoreGuiParams(letterIndex, suggestedRamSize);
+						_this->RestoreGuiParams((DWORD)letterIndex, (DWORD)suggestedRamSize);
 					}
 				}
 				if ((HANDLE)lParam == _this->m_CtlAddDeviceBtn) {
@@ -779,7 +807,7 @@ LRESULT CALLBACK GpuRamGui::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 						MessageBox(hWnd, L"The letter is already added, select a free letter to add a new device", _this->wszAppName, MB_OK);
 						return false;
 					}
-					if (_this->diskUtil.checkDriveIsMounted('A' + deviceId, NULL)) {
+					if (_this->diskUtil.checkDriveIsMounted((char)('A' + deviceId), NULL)) {
 						MessageBox(hWnd, L"The letter is in use, select a free letter to add a new device", _this->wszAppName, MB_OK);
 						return false;
 					}
@@ -792,7 +820,7 @@ LRESULT CALLBACK GpuRamGui::WndProc(HWND hWnd, UINT message, WPARAM wParam, LPAR
 						MessageBox(hWnd, L"The letter is already added, select a free letter to modify the device", _this->wszAppName, MB_OK);
 						return false;
 					}
-					if (_this->diskUtil.checkDriveIsMounted('A' + deviceId, NULL)) {
+					if (_this->diskUtil.checkDriveIsMounted((char)('A' + deviceId), NULL)) {
 						MessageBox(hWnd, L"The letter is in use, select a free letter to modify the device", _this->wszAppName, MB_OK);
 						return false;
 					}
